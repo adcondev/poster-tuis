@@ -22,27 +22,19 @@ func GenerateServiceNames(baseName, variant string) (registryName, displayName, 
 }
 
 func GetBanner() string {
-	// InnerWidth is the number of characters between the vertical bars (║) in the banner.
-	// This must match the width of the banner template (45 characters).
-	const innerWidth = 45
-
 	// Build the "Build:" line dynamically and then pad/truncate it to fit the banner width.
 	buildInfo := fmt.Sprintf("Build: %s %s", BuildDate, BuildTime)
-	if len(buildInfo) > innerWidth {
-		buildInfo = buildInfo[:innerWidth]
-	}
-	buildLine := fmt.Sprintf("%-*s", innerWidth, buildInfo)
 
 	return fmt.Sprintf(`
 ╔═════════════════════════════════════════════╗
 ║        SERVICE FAMILY MANAGER v2.0          ║
-║ %s║
+║         %s         ║
 ║                                             ║
 ║     Gestión de Servicios Red2000            ║
 ║     - Scale Service (Local/Remote)          ║
 ║     - Ticket Service (Local/Remote)         ║
 ║                                             ║
 ╚═════════════════════════════════════════════╝`,
-		buildLine,
+		buildInfo,
 	)
 }

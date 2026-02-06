@@ -21,7 +21,13 @@ func isAdmin() bool {
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			fmt.Printf("Error closing file: %v\n", err)
+			os.Exit(1)
+		}
+	}(f)
 	return true
 }
 

@@ -48,15 +48,15 @@ vars:
   # 🪟 SERVICE IDENTIFIERS (Windows Service Registry Names)
   # ══════════════════════════════════════════════════════════════
   # Scale
-  SCALE_SVC_ID_LOCAL: "R2k_Bascula_Local"
-  SCALE_SVC_ID_REMOTE: "R2k_Bascula_Remote"
+  SCALE_SVC_ID_LOCAL: "R2k_BasculaServicio_Local"
+  SCALE_SVC_ID_REMOTE: "R2k_BasculaServicio_Remote"
   SCALE_CMD_ID_LOCAL: "R2k_BasculaCmd_Local"
   SCALE_CMD_ID_REMOTE: "R2k_BasculaCmd_Remote"
   SCALE_SVC_DISPLAY_REMOTE: "R2k Bascula Service (REMOTE)"
   SCALE_SVC_DESC_REMOTE: "Servicio de comunicacion con bascula via WebSocket"
 
   # Ticket
-  TICKET_SVC_ID_REMOTE: "R2k_Ticket_Remote"
+  TICKET_SVC_ID_REMOTE: "R2k_TicketServicio_Remote"
   TICKET_SVC_DISPLAY_REMOTE: "R2k Ticket Service (REMOTE)"
   TICKET_SVC_DESC_REMOTE: "Servicio de impresion de tickets POS via WebSocket"
 
@@ -535,7 +535,7 @@ tasks:
       - echo ""
       - echo "══════════════════════════════════════════════════════════════"
       - echo "  ✅ INSTALLER BUILD COMPLETE"
-      - echo "  📁 Output: {{.DIST_DIR}}/R2k_Instalador.exe"
+      - echo "  📁 Output:{{.DIST_DIR}}/R2k_Instalador.exe"
       - echo "══════════════════════════════════════════════════════════════"
 
   installer:rebuild:
