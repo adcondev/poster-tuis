@@ -174,7 +174,7 @@ func (m Model) viewConfirm() string {
 		Align(lipgloss.Center)
 
 	content := fmt.Sprintf("[!] CONFIRMACIÓN\n\n%s\n\n", m.confirmAction)
-	content += successStyle.Render("[S]í") + "    " + errorStyle.Render("[N]o")
+	content += successStyle.Render("[S]í") + "    " + warningStyle.Render("[N]o")
 
 	b.WriteString(confirmBox.Render(content))
 

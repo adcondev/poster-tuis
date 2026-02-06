@@ -27,7 +27,7 @@ type Model struct {
 	selectedFamily string // "scale" or "ticket"
 
 	// Service data
-	registry       map[string][]service.ServiceVariant
+	registry       map[string][]service.Variant
 	managers       map[string]*service.Manager // Indexed by variant.ID
 	familyStatuses map[string]service.FamilyStatus
 
@@ -252,7 +252,7 @@ func (m Model) goToFamilyMenu(family, familyTitle string) (Model, tea.Cmd) {
 	m.currentScreen = screenFamily
 
 	fs := m.familyStatuses[family]
-	items := buildFamilyMenuItems(family, fs)
+	items := buildFamilyMenuItems(fs)
 	m.list.SetItems(items)
 	m.list.Title = fmt.Sprintf("Gestión - %s", familyTitle)
 
@@ -272,7 +272,7 @@ func (m Model) goToLogsMenu() (Model, tea.Cmd) {
 // returnToFamilyMenu rebuilds the family menu and navigates back to it
 func (m Model) returnToFamilyMenu() (Model, tea.Cmd) {
 	fs := m.familyStatuses[m.selectedFamily]
-	items := buildFamilyMenuItems(m.selectedFamily, fs)
+	items := buildFamilyMenuItems(fs)
 	m.list.SetItems(items)
 	m.list.Title = fmt.Sprintf("Gestión - %s", capitalize(m.selectedFamily))
 	m.currentScreen = screenFamily
