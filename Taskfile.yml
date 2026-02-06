@@ -535,7 +535,7 @@ tasks:
       - echo ""
       - echo "══════════════════════════════════════════════════════════════"
       - echo "  ✅ INSTALLER BUILD COMPLETE"
-      - echo "  📁 Output:{{.DIST_DIR}}/R2k_Instalador.exe"
+      - echo "  📁 Output: {{.DIST_DIR}}/R2k_Instalador.exe"
       - echo "══════════════════════════════════════════════════════════════"
 
   installer:rebuild:
@@ -552,9 +552,9 @@ tasks:
     cmds:
       - cmd: powershell -Command "if (Test-Path '{{.BIN_DIR}}') { Remove-Item -Recurse -Force '{{.BIN_DIR}}' -ErrorAction SilentlyContinue }"
         platforms: [ windows ]
-      - cmd: rm -rf ./bin
+      - cmd: rm -rf {{.BIN_DIR}}
         platforms: [ linux, darwin ]
-      - echo "✅ Cleaned ./bin"
+      - echo "✅ Cleaned {{.BIN_DIR}}"
 
   clean:installer:
     desc: "🧹 Clean installer build artifacts"

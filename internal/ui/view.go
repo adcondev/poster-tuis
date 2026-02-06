@@ -205,8 +205,6 @@ func (m Model) renderHealthSummary() string {
 			case service.StatusStopped:
 				icon = "."
 				// default: icon stays "?" — safe for StatusUnknown
-			default:
-				// StatusUnknown or others
 			}
 
 			parts = append(parts, fmt.Sprintf("%s: [%s] %s", family, icon, installed))

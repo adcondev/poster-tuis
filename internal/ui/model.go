@@ -201,7 +201,16 @@ func (m Model) getActiveManager() *service.Manager {
 	return m.managers[variantID]
 }
 
-// refreshStatusCmd checks the status of all service families in the background
+// refreshStatusCmd checks the status of all service families in the background.
+//
+// CONCURRENCY NOTE: This function runs in a goroutine and accesses m.registry,
+// which is shared state. However, this is safe because:
+// 1. m.registry is initialized once during model creation and never modified thereafter
+// 2. The Bubble Tea architecture ensures model updates happen sequentially via message passing
+// 3. Only read operations are performed on m.registry (no writes)
+//
+// If m.registry ever needs to be modified after initialization, proper synchronization
+// (e.g., mutex or atomic operations) must be added.
 func (m Model) refreshStatusCmd() tea.Cmd {
 	return func() tea.Msg {
 		statuses := make(map[string]service.FamilyStatus)

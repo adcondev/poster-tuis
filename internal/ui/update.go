@@ -140,7 +140,17 @@ func (m Model) handleDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if key.Matches(msg, m.keys.Enter) {
-		selected := m.list.SelectedItem().(menuItem)
+		item := m.list.SelectedItem()
+		if item == nil {
+			// No item selected; ignore Enter.
+			return m, nil
+		}
+
+		selected, ok := item.(menuItem)
+		if !ok {
+			// Unexpected item type; ignore Enter.
+			return m, nil
+		}
 
 		if selected.data == "quit" {
 			return m, tea.Quit
@@ -175,7 +185,17 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if key.Matches(msg, m.keys.Enter) {
-		selected := m.list.SelectedItem().(menuItem)
+		item := m.list.SelectedItem()
+		if item == nil {
+			// No item selected; ignore Enter.
+			return m, nil
+		}
+
+		selected, ok := item.(menuItem)
+		if !ok {
+			// Unexpected item type; ignore Enter.
+			return m, nil
+		}
 
 		switch selected.data {
 		case "back":
@@ -189,21 +209,27 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 		case "start":
 			mgr := m.getActiveManager()
-			if mgr != nil {
-				return m.executeAction("Iniciar Servicio", mgr.Start)
+			if mgr == nil {
+				m.statusMessage = "No hay servicio activo instalado."
+				return m, nil
 			}
+			return m.executeAction("Iniciar Servicio", mgr.Start)
 
 		case "stop":
 			mgr := m.getActiveManager()
-			if mgr != nil {
-				return m.executeAction("Detener Servicio", mgr.Stop)
+			if mgr == nil {
+				m.statusMessage = "No hay servicio activo instalado."
+				return m, nil
 			}
+			return m.executeAction("Detener Servicio", mgr.Stop)
 
 		case "restart":
 			mgr := m.getActiveManager()
-			if mgr != nil {
-				return m.executeAction("Reiniciar Servicio", mgr.Restart)
+			if mgr == nil {
+				m.statusMessage = "No hay servicio activo instalado."
+				return m, nil
 			}
+			return m.executeAction("Reiniciar Servicio", mgr.Restart)
 
 		case "uninstall":
 			return m.confirmUninstall()
@@ -225,23 +251,43 @@ func (m Model) handleLogsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if key.Matches(msg, m.keys.Enter) {
-		selected := m.list.SelectedItem().(menuItem)
+		item := m.list.SelectedItem()
+		if item == nil {
+			// No item selected; ignore Enter.
+			return m, nil
+		}
+
+		selected, ok := item.(menuItem)
+		if !ok {
+			// Unexpected item type; ignore Enter.
+			return m, nil
+		}
 
 		switch selected.data {
 		case "open-file":
 			mgr := m.getActiveManager()
-			if mgr != nil {
-				_ = mgr.OpenLogFile()
-				m.statusMessage = "Abriendo archivo de logs..."
+			if mgr == nil {
+				m.statusMessage = "No hay servicio activo instalado; no se pueden abrir los logs."
+				return m, nil
 			}
+			if err := mgr.OpenLogFile(); err != nil {
+				m.statusMessage = fmt.Sprintf("Error al abrir el archivo de logs: %v", err)
+				return m, nil
+			}
+			m.statusMessage = "Abriendo archivo de logs..."
 			return m, nil
 
 		case "open-dir":
 			mgr := m.getActiveManager()
-			if mgr != nil {
-				_ = mgr.OpenLogDir()
-				m.statusMessage = "Abriendo carpeta de logs..."
+			if mgr == nil {
+				m.statusMessage = "No hay servicio activo instalado; no se puede abrir la carpeta de logs."
+				return m, nil
 			}
+			if err := mgr.OpenLogDir(); err != nil {
+				m.statusMessage = fmt.Sprintf("Error al abrir la carpeta de logs: %v", err)
+				return m, nil
+			}
+			m.statusMessage = "Abriendo carpeta de logs..."
 			return m, nil
 
 		case "back":
