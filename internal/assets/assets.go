@@ -4,7 +4,7 @@ import _ "embed"
 
 // ══════════════════════════════════════════════════════════════
 // Embedded Service Binaries
-// ════════════════════════════════════════════════���═════════════
+// ══════════════════════════════════════════════════════════════
 // These binaries are built by Taskfile and embedded at compile time.
 // Paths are relative to this file (internal/assets/).
 //

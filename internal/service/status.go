@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// ══════════════════════════��═══════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 // Status Types
 // ══════════════════════════════════════════════════════════════
 
@@ -23,7 +23,7 @@ const (
 func (s Status) String() string {
 	switch s {
 	case StatusRunning:
-		return "[+] EN EJECUCION"
+		return "[+] EN EJECUCIÓN"
 	case StatusStopped:
 		return "[.] DETENIDO"
 	case StatusNotInstalled:
