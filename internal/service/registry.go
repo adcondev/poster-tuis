@@ -9,8 +9,8 @@ import (
 // Service Variant Definition
 // ══════════════════════════════════════════════════════════════
 
-// ServiceVariant represents a specific variant (Local/Remote) of a service family
-type ServiceVariant struct {
+// Variant represents a specific variant (Local/Remote) of a service family
+type Variant struct {
 	ID           string // Unique identifier: "scale-local", "ticket-remote"
 	Family       string // Family name: "scale", "ticket"
 	Variant      string // Variant type: "Local", "Remote"
@@ -27,7 +27,7 @@ type ServiceVariant struct {
 // GetServiceRegistry returns all service families with their variants.
 // Returns map with keys: "scale", "ticket"
 // Each key maps to a slice of 2 variants (Local, Remote).
-func GetServiceRegistry() map[string][]ServiceVariant {
+func GetServiceRegistry() map[string][]Variant {
 	// Generate naming for Scale family
 	scaleLocalReg, scaleLocalDisp, scaleLocalExe := config.GenerateServiceNames(config.ScaleBaseName, "Local")
 	scaleRemoteReg, scaleRemoteDisp, scaleRemoteExe := config.GenerateServiceNames(config.ScaleBaseName, "Remote")
@@ -36,7 +36,7 @@ func GetServiceRegistry() map[string][]ServiceVariant {
 	ticketLocalReg, ticketLocalDisp, ticketLocalExe := config.GenerateServiceNames(config.TicketBaseName, "Local")
 	ticketRemoteReg, ticketRemoteDisp, ticketRemoteExe := config.GenerateServiceNames(config.TicketBaseName, "Remote")
 
-	return map[string][]ServiceVariant{
+	return map[string][]Variant{
 		"scale": {
 			{
 				ID:           "scale-local",
