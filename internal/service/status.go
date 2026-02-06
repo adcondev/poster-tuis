@@ -3,6 +3,7 @@ package service
 import (
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // ══════════════════════════════════════════════════════════════
@@ -117,4 +118,20 @@ func CheckFamilyStatus(variants []ServiceVariant) FamilyStatus {
 	}
 
 	return fs
+}
+
+// WaitForStatus polls the service status until it reaches the expected state
+// or times out. Returns true if the expected status was reached.
+func (m *Manager) WaitForStatus(expectedStatus Status, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 100 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		currentStatus := m.CheckStatus()
+		if currentStatus == expectedStatus {
+			return true
+		}
+		time.Sleep(pollInterval)
+	}
+	return false
 }

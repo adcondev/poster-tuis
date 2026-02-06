@@ -130,7 +130,9 @@ func (m *Manager) Install() error {
 func (m *Manager) Uninstall() error {
 	// Stop first (ignore errors — might not be running)
 	_ = exec.Command("sc", "stop", m.variant.RegistryName).Run()
-	time.Sleep(2 * time.Second)
+	
+	// Wait for service to stop with timeout (max 10 seconds)
+	m.WaitForStatus(StatusStopped, 10*time.Second)
 
 	// Delete service from registry
 	cmd := exec.Command("sc", "delete", m.variant.RegistryName)
@@ -179,7 +181,7 @@ func (m *Manager) Stop() error {
 	return nil
 }
 
-// Restart stops and starts the service with a delay between operations
+// Restart stops and starts the service with proper status polling
 func (m *Manager) Restart() error {
 	// Stop — ignore "not running" errors
 	if err := m.Stop(); err != nil {
@@ -187,6 +189,9 @@ func (m *Manager) Restart() error {
 			return err
 		}
 	}
-	time.Sleep(2 * time.Second)
+	
+	// Wait for service to stop with timeout (max 10 seconds)
+	m.WaitForStatus(StatusStopped, 10*time.Second)
+	
 	return m.Start()
 }
