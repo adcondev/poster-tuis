@@ -11,7 +11,7 @@ vars:
   # 📝 GLOBAL CONFIGURATION
   # ══════════════════════════════════════════════════════════════
   BIN_DIR:
-    sh: powershell -Command "(Get-Location).Path + '\bin'"
+    sh: powershell -Command "(Get-Location).Path + '\assets\bin'"
 
   # Date/Time for ldflags (Windows format)
   DATE:
@@ -60,6 +60,27 @@ vars:
   TICKET_SVC_DISPLAY_REMOTE: "R2k Ticket Service (REMOTE)"
   TICKET_SVC_DESC_REMOTE: "Servicio de impresion de tickets POS via WebSocket"
 
+  # ══════════════════════════════════════════════════════════════
+  # 🎯 INSTALLER CONFIGURATION
+  # ══════════════════════════════════════════════════════════════
+  # Base Names (injected into config package)
+  SCALE_BASE: "R2k_Bascula"
+  TICKET_BASE: "R2k_Ticket"
+
+  # Installer paths
+  ASSETS_BIN_DIR:
+    sh: powershell -Command "(Get-Location).Path + '\internal\assets\bin'"
+  DIST_DIR:
+    sh: powershell -Command "(Get-Location).Path + '\dist'"
+
+  # Source repositories
+  SCALE_SRC: "../scale-daemon"
+  TICKET_SRC: "../ticket-daemon"
+
+  # Installer ldflags
+  CONFIG_PKG: "github.com/adcondev/poster-tuis/internal/config"
+  LDFLAGS_INSTALLER: "-s -w -X '{{.CONFIG_PKG}}.BuildDate={{.DATE}}' -X '{{.CONFIG_PKG}}.BuildTime={{.TIME}}' -X '{{.CONFIG_PKG}}.ScaleBaseName={{.SCALE_BASE}}' -X '{{.CONFIG_PKG}}.TicketBaseName={{.TICKET_BASE}}'"
+
 env:
   CGO_ENABLED: '0'
   GOOS: windows
@@ -70,23 +91,27 @@ tasks:
     desc: "📋 Show all available tasks"
     cmds:
       - |
-        echo.
+        echo
         echo ══════════════════════════════════════════════════════════════
         echo   DAEMON-TUIS - Unified Build System
         echo ══════════════════════════════════════════════════════════════
-        echo.
+        echo
         echo   INDIVIDUAL BUILDS:
-        echo     task scale:all         Build all Scale (Bascula) binaries
+        echo     task scale:all         Build all Scale binaries
         echo     task ticket:all        Build all Ticket binaries
-        echo.
+        echo
         echo   AGGREGATE BUILDS:
-        echo     task build:all         Build EVERYTHING (8 binaries)
+        echo     task build:all         Build EVERYTHING
         echo     task build:local       Build all LOCAL versions
         echo     task build:remote      Build all REMOTE versions
         echo     task build:console     Build all CONSOLE versions
         echo     task build:service     Build all SERVICE versions
-        echo.
-        echo   SERVICE MANAGEMENT (Requires Administrator):
+        echo
+        echo   📦 INSTALLER:
+        echo     task installer:build   Build TUI Installer
+        echo     task installer:rebuild Clean + rebuild installer
+        echo
+        echo   SERVICE MANAGEMENT - Requires Administrator:
         echo     task svc:install       Install all REMOTE services
         echo     task svc:uninstall     Uninstall all REMOTE services
         echo     task svc:start         Start all REMOTE services
@@ -96,6 +121,7 @@ tasks:
         echo.
         echo   UTILITIES:
         echo     task clean             Remove bin directory
+        echo     task clean:installer   Remove installer artifacts
         echo     task clean:all         Clean all project directories
         echo     task list              Show all tasks with descriptions
         echo.
@@ -112,6 +138,22 @@ tasks:
       - powershell -Command "if (!(Test-Path '{{.BIN_DIR}}')) { New-Item -ItemType Directory -Path '{{.BIN_DIR}}' -Force | Out-Null }"
     status:
       - test -d "{{.BIN_DIR}}"
+
+  init:assets:
+    desc: "🛠️ Create internal/assets/bin directory"
+    internal: true
+    cmds:
+      - powershell -Command "if (!(Test-Path '{{.ASSETS_BIN_DIR}}')) { New-Item -ItemType Directory -Path '{{.ASSETS_BIN_DIR}}' -Force | Out-Null }"
+    status:
+      - test -d "{{.ASSETS_BIN_DIR}}"
+
+  init:dist:
+    desc: "🛠️ Create dist directory"
+    internal: true
+    cmds:
+      - powershell -Command "if (!(Test-Path '{{.DIST_DIR}}')) { New-Item -ItemType Directory -Path '{{.DIST_DIR}}' -Force | Out-Null }"
+    status:
+      - test -d "{{.DIST_DIR}}"
 
   # ══════════════════════════════════════════════════════════════
   # ⚖️ SCALE DAEMON (BASCULA)
@@ -167,7 +209,7 @@ tasks:
       - task: scale:service
       - echo "✅ All Scale binaries complete"
 
-  # ═══════════════════════════════════════════════════════��══════
+  # ══════════════════════════════════════════════════════════════
   # 🎫 TICKET DAEMON
   # ══════════════════════════════════════════════════════════════
   ticket:console:local:
@@ -378,7 +420,7 @@ tasks:
     cmds:
       - sc query {{.TICKET_SVC_ID_REMOTE}}
 
-  # ───────────────────────────────────────────��─────────────────
+  # ─────────────────────────────────────────────────────────────
   # AGGREGATE SERVICE MANAGEMENT (ALL REMOTE SERVICES)
   # ─────────────────────────────────────────────────────────────
   svc:install:
@@ -439,44 +481,68 @@ tasks:
         ignore_error: true
 
   # ══════════════════════════════════════════════════════════════
-  # 📦 INSTALLER BUILDS (FUTURE)
-  # ══════════════════════════════════════════════════════════���═══
-  # NOTE: When enabling installers, ensure:
-  # 1. The tmp/ folder structure is created for embed directives
-  # 2. Service binaries are built BEFORE installer (deps)
-  # 3. Installer ldflags include ServiceDisplayName and ServiceExeName
-  #
-  # installer:scale:local:
-  #   desc: "📦 Build Scale Installer (Local)"
-  #   deps: [scale:service:local]
-  #   dir: ../scale-daemon
-  #   cmds:
-  #     - powershell -Command "New-Item -ItemType Directory -Path './tmp' -Force | Out-Null"
-  #     - cp "{{.BIN_DIR}}/{{.SCALE_SERVICE_LOCAL}}" ./tmp/BasculaServicio.exe
-  #     - go build -ldflags "-s -w -X main.BuildEnvironment=local -X main.ServiceName={{.SCALE_SVC_ID_LOCAL}} -X \"main.ServiceDisplayName=R2k Bascula Service (LOCAL)\" -X main.ServiceExeName={{.SCALE_SERVICE_LOCAL}} -X main.BuildDate={{.DATE}} -X main.BuildTime={{.TIME}}" -o "{{.BIN_DIR}}/R2k_Instalador_Bascula_Local.exe" ./cmd/BasculaInstalador
-  #     - echo "📦 Built R2k_Instalador_Bascula_Local.exe"
-  #
-  # installer:scale:remote:
-  #   desc: "📦 Build Scale Installer (Remote)"
-  #   deps: [scale:service:remote]
-  #   dir: ../scale-daemon
-  #   cmds:
-  #     - powershell -Command "New-Item -ItemType Directory -Path './tmp' -Force | Out-Null"
-  #     - cp "{{.BIN_DIR}}/{{.SCALE_SERVICE_REMOTE}}" ./tmp/BasculaServicio.exe
-  #     - go build -ldflags "-s -w -X main.BuildEnvironment=remote -X main.ServiceName={{.SCALE_SVC_ID_REMOTE}} -X \"main.ServiceDisplayName=R2k Bascula Service (REMOTE)\" -X main.ServiceExeName={{.SCALE_SERVICE_REMOTE}} -X main.BuildDate={{.DATE}} -X main.BuildTime={{.TIME}}" -o "{{.BIN_DIR}}/R2k_Instalador_Bascula_Remote.exe" ./cmd/BasculaInstalador
-  #     - echo "📦 Built R2k_Instalador_Bascula_Remote.exe"
-  #
-  # installer:scale:
-  #   desc: "📦 Build all Scale Installers"
-  #   cmds:
-  #     - task: installer:scale:local
-  #     - task: installer:scale:remote
-  #
-  # installer:all:
-  #   desc: "📦 Build ALL Installers"
-  #   cmds:
-  #     - task: installer:scale
-  #     # - task: installer:ticket  # When ticket has installer
+  # 📦 INSTALLER SERVICE BUILDS (Output to assets/bin)
+  # ══════════════════════════════════════════════════════════════
+  installer:build:scale-local:
+    desc: "📦 Build Scale Service (Local) for embedding"
+    dir: "{{.SCALE_SRC}}"
+    deps: [ init:assets ]
+    cmds:
+      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X main.BuildEnvironment=local -X main.ServiceName={{.SCALE_SVC_ID_LOCAL}}" -o "{{.ASSETS_BIN_DIR}}/R2k_BasculaServicio_Local.exe" ./cmd/BasculaServicio
+      - echo "✅ Built R2k_BasculaServicio_Local.exe for installer"
+
+  installer:build:scale-remote:
+    desc: "📦 Build Scale Service (Remote) for embedding"
+    dir: "{{.SCALE_SRC}}"
+    deps: [ init:assets ]
+    cmds:
+      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X main.BuildEnvironment=remote -X main.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/R2k_BasculaServicio_Remote.exe" ./cmd/BasculaServicio
+      - echo "✅ Built R2k_BasculaServicio_Remote.exe for installer"
+
+  installer:build:ticket-local:
+    desc: "📦 Build Ticket Service (Local) for embedding"
+    dir: "{{.TICKET_SRC}}"
+    deps: [ init:assets ]
+    cmds:
+      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=test" -o "{{.ASSETS_BIN_DIR}}/R2k_TicketServicio_Local.exe" ./cmd/TicketServicio
+      - echo "✅ Built R2k_TicketServicio_Local.exe for installer"
+
+  installer:build:ticket-remote:
+    desc: "📦 Build Ticket Service (Remote) for embedding"
+    dir: "{{.TICKET_SRC}}"
+    deps: [ init:assets ]
+    cmds:
+      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=prod" -o "{{.ASSETS_BIN_DIR}}/R2k_TicketServicio_Remote.exe" ./cmd/TicketServicio
+      - echo "✅ Built R2k_TicketServicio_Remote.exe for installer"
+
+  installer:build:services:
+    desc: "📦 Build ALL service binaries for embedding (4 total)"
+    cmds:
+      - task: installer:build:scale-local
+      - task: installer:build:scale-remote
+      - task: installer:build:ticket-local
+      - task: installer:build:ticket-remote
+      - echo ""
+      - echo "══════════════════════════════════════════════════════════════"
+      - echo "  ✅ All service binaries ready for embedding"
+      - echo "══════════════════════════════════════════════════════════════"
+
+  installer:build:
+    desc: "🚀 Build TUI Installer with embedded services"
+    deps: [ installer:build:services, init:dist ]
+    cmds:
+      - go build -ldflags "{{.LDFLAGS_INSTALLER}}" -o "{{.DIST_DIR}}/R2k_Instalador.exe" ./cmd/R2kInstaller
+      - echo ""
+      - echo "══════════════════════════════════════════════════════════════"
+      - echo "  ✅ INSTALLER BUILD COMPLETE"
+      - echo "  📁 Output:{{.DIST_DIR}}/R2k_Instalador.exe"
+      - echo "══════════════════════════════════════════════════════════════"
+
+  installer:rebuild:
+    desc: "🔄 Clean and rebuild installer from scratch"
+    cmds:
+      - task: clean:installer
+      - task: installer:build
 
   # ══════════════════════════════════════════════════════════════
   # 🧹 UTILITIES
@@ -490,17 +556,22 @@ tasks:
         platforms: [ linux, darwin ]
       - echo "✅ Cleaned ./bin"
 
+  clean:installer:
+    desc: "🧹 Clean installer build artifacts"
+    cmds:
+      - cmd: powershell -Command "if (Test-Path '{{.ASSETS_BIN_DIR}}') { Remove-Item -Recurse -Force '{{.ASSETS_BIN_DIR}}' -ErrorAction SilentlyContinue }"
+        platforms: [ windows ]
+      - cmd: powershell -Command "if (Test-Path '{{.DIST_DIR}}') { Remove-Item -Recurse -Force '{{.DIST_DIR}}' -ErrorAction SilentlyContinue }"
+        platforms: [ windows ]
+      - echo "✅ Cleaned installer artifacts"
+
   clean:all:
     desc: "🧹 Clean all project bin and tmp directories"
     cmds:
       - task: clean
-      - cmd: |
-          powershell -Command "
-            @('../scale-daemon/bin', '../scale-daemon/tmp', '../ticket-daemon/bin') | ForEach-Object {
-              if (Test-Path $_) { Remove-Item -Recurse -Force $_ -ErrorAction SilentlyContinue }
-            }
-          "
+      - task: clean:installer
+      - cmd: powershell -Command "Remove-Item -Path '../scale-daemon/bin', '../scale-daemon/tmp', '../ticket-daemon/bin' -Recurse -Force -ErrorAction SilentlyContinue"
         platforms: [ windows ]
-      - cmd: rm -rf ../scale-daemon/bin ../scale-daemon/tmp ../ticket-daemon/bin
+      - cmd: rm -rf ../scale-daemon/bin ../ticket-daemon/bin
         platforms: [ linux, darwin ]
       - echo "✅ All projects cleaned"
