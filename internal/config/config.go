@@ -23,6 +23,7 @@ func GenerateServiceNames(baseName, variant string) (registryName, displayName, 
 
 func GetBanner() string {
 	// InnerWidth is the number of characters between the vertical bars (║) in the banner.
+	// This must match the width of the banner template (45 characters).
 	const innerWidth = 45
 
 	// Build the "Build:" line dynamically and then pad/truncate it to fit the banner width.

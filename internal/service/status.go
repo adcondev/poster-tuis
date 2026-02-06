@@ -123,15 +123,16 @@ func CheckFamilyStatus(variants []ServiceVariant) FamilyStatus {
 // WaitForStatus polls the service status until it reaches the expected state
 // or times out. Returns true if the expected status was reached.
 func (m *Manager) WaitForStatus(expectedStatus Status, timeout time.Duration) bool {
+	const defaultPollInterval = 100 * time.Millisecond
+	
 	deadline := time.Now().Add(timeout)
-	pollInterval := 100 * time.Millisecond
 
 	for time.Now().Before(deadline) {
 		currentStatus := m.CheckStatus()
 		if currentStatus == expectedStatus {
 			return true
 		}
-		time.Sleep(pollInterval)
+		time.Sleep(defaultPollInterval)
 	}
 	return false
 }

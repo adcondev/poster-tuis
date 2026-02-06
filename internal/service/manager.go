@@ -70,7 +70,7 @@ func isValidDisplayName(name string) bool {
 
 // isValidFileName validates that a file name is safe
 func isValidFileName(name string) bool {
-	if name == "" || strings.Contains(name, "..") || strings.Contains(name, "/") || strings.Contains(name, "\\") {
+	if name == "" || hasPathTraversal(name) {
 		return false
 	}
 	for _, c := range name {
@@ -79,6 +79,11 @@ func isValidFileName(name string) bool {
 		}
 	}
 	return true
+}
+
+// hasPathTraversal checks if a string contains path traversal sequences
+func hasPathTraversal(s string) bool {
+	return strings.Contains(s, "..") || strings.Contains(s, "/") || strings.Contains(s, "\\")
 }
 
 // ══════════════════════════════════════════════════════════════
