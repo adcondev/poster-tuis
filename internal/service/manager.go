@@ -130,7 +130,7 @@ func (m *Manager) Install() error {
 func (m *Manager) Uninstall() error {
 	// Stop first (ignore errors — might not be running)
 	_ = exec.Command("sc", "stop", m.variant.RegistryName).Run()
-	
+
 	// Wait for service to stop with timeout (max 10 seconds)
 	m.WaitForStatus(StatusStopped, 10*time.Second)
 
@@ -189,9 +189,9 @@ func (m *Manager) Restart() error {
 			return err
 		}
 	}
-	
+
 	// Wait for service to stop with timeout (max 10 seconds)
 	m.WaitForStatus(StatusStopped, 10*time.Second)
-	
+
 	return m.Start()
 }

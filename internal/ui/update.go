@@ -230,7 +230,6 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m.executeAction("Reiniciar Servicio", mgr.Restart)
-			}
 
 		case "uninstall":
 			return m.confirmUninstall()
