@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,10 +29,18 @@ func (m *Manager) GetLogDir() string {
 
 // OpenLogFile opens the log file in Notepad
 func (m *Manager) OpenLogFile() error {
-	return exec.Command("notepad.exe", m.GetLogPath()).Start()
+	logPath := m.GetLogPath()
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
+		return fmt.Errorf("el archivo de logs no existe: %s", logPath)
+	}
+	return exec.Command("notepad.exe", logPath).Start()
 }
 
 // OpenLogDir opens the log directory in Windows Explorer
 func (m *Manager) OpenLogDir() error {
-	return exec.Command("explorer", m.GetLogDir()).Start()
+	logDir := m.GetLogDir()
+	if _, err := os.Stat(logDir); os.IsNotExist(err) {
+		return fmt.Errorf("la carpeta de logs no existe: %s", logDir)
+	}
+	return exec.Command("explorer", logDir).Start()
 }
