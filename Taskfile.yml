@@ -4,7 +4,7 @@
 
 version: '3'
 
-silent: false
+silent: true
 
 vars:
   # ══════════════════════════════════════════════════════════════
@@ -24,15 +24,15 @@ vars:
   # ══════════════════════════════════════════════════════════════
   # Scale (Bascula)
   SCALE_CONSOLE_LOCAL: "R2k_BasculaConsole_Local.exe"
-  SCALE_CONSOLE_REMOTE: "R2k_BasculaConsole_Remote.exe"
+  SCALE_CONSOLE_REMOTE: "R2k_BasculaConsole_Remoto.exe"
   SCALE_SERVICE_LOCAL: "R2k_BasculaServicio_Local.exe"
-  SCALE_SERVICE_REMOTE: "R2k_BasculaServicio_Remote.exe"
+  SCALE_SERVICE_REMOTE: "R2k_BasculaServicio_Remoto.exe"
 
   # Ticket
   TICKET_CONSOLE_LOCAL: "R2k_TicketConsole_Local.exe"
-  TICKET_CONSOLE_REMOTE: "R2k_TicketConsole_Remote.exe"
+  TICKET_CONSOLE_REMOTE: "R2k_TicketConsole_Remoto.exe"
   TICKET_SERVICE_LOCAL: "R2k_TicketServicio_Local.exe"
-  TICKET_SERVICE_REMOTE: "R2k_TicketServicio_Remote.exe"
+  TICKET_SERVICE_REMOTE: "R2k_TicketServicio_Remoto.exe"
 
   # ══════════════════════════════════════════════════════════════
   # 🔧 LDFLAGS CONFIGURATION
@@ -49,16 +49,16 @@ vars:
   # ══════════════════════════════════════════════════════════════
   # Scale
   SCALE_SVC_ID_LOCAL: "R2k_BasculaServicio_Local"
-  SCALE_SVC_ID_REMOTE: "R2k_BasculaServicio_Remote"
+  SCALE_SVC_ID_REMOTE: "R2k_BasculaServicio_Remoto"
   SCALE_CMD_ID_LOCAL: "R2k_BasculaCmd_Local"
-  SCALE_CMD_ID_REMOTE: "R2k_BasculaCmd_Remote"
-  SCALE_SVC_DISPLAY_REMOTE: "R2k Bascula Service (REMOTE)"
-  SCALE_SVC_DESC_REMOTE: "Servicio de comunicacion con bascula via WebSocket"
+  SCALE_CMD_ID_REMOTE: "R2k_BasculaCmd_Remoto"
+  SCALE_SVC_DISPLAY_REMOTE: "R2k Bascula Servicio (REMOTO)"
+  SCALE_SVC_DESC_REMOTE: "Servicio de comunicación con bascula via WebSocket"
 
   # Ticket
-  TICKET_SVC_ID_REMOTE: "R2k_TicketServicio_Remote"
-  TICKET_SVC_DISPLAY_REMOTE: "R2k Ticket Service (REMOTE)"
-  TICKET_SVC_DESC_REMOTE: "Servicio de impresion de tickets POS via WebSocket"
+  TICKET_SVC_ID_REMOTE: "R2k_TicketServicio_Remoto"
+  TICKET_SVC_DISPLAY_REMOTE: "R2k Ticket Servicio (REMOTO)"
+  TICKET_SVC_DESC_REMOTE: "Servicio de impresión de tickets POS via WebSocket"
 
   # ══════════════════════════════════════════════════════════════
   # 🎯 INSTALLER CONFIGURATION
