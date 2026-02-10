@@ -9,11 +9,11 @@ import (
 // Service Variant Definition
 // ══════════════════════════════════════════════════════════════
 
-// ServiceVariant represents a specific variant (Local/Remote) of a service family
-type ServiceVariant struct {
+// Variant represents a specific variant (Local/Remoto) of a service family
+type Variant struct {
 	ID           string // Unique identifier: "scale-local", "ticket-remote"
 	Family       string // Family name: "scale", "ticket"
-	Variant      string // Variant type: "Local", "Remote"
+	Variant      string // Variant type: "Local", "Remoto"
 	RegistryName string // Windows service registry name
 	DisplayName  string // Human-readable display name
 	ExeName      string // Binary filename on disk
@@ -26,17 +26,17 @@ type ServiceVariant struct {
 
 // GetServiceRegistry returns all service families with their variants.
 // Returns map with keys: "scale", "ticket"
-// Each key maps to a slice of 2 variants (Local, Remote).
-func GetServiceRegistry() map[string][]ServiceVariant {
+// Each key maps to a slice of 2 variants (Local, Remoto).
+func GetServiceRegistry() map[string][]Variant {
 	// Generate naming for Scale family
 	scaleLocalReg, scaleLocalDisp, scaleLocalExe := config.GenerateServiceNames(config.ScaleBaseName, "Local")
-	scaleRemoteReg, scaleRemoteDisp, scaleRemoteExe := config.GenerateServiceNames(config.ScaleBaseName, "Remote")
+	scaleRemoteReg, scaleRemoteDisp, scaleRemoteExe := config.GenerateServiceNames(config.ScaleBaseName, "Remoto")
 
 	// Generate naming for Ticket family
 	ticketLocalReg, ticketLocalDisp, ticketLocalExe := config.GenerateServiceNames(config.TicketBaseName, "Local")
-	ticketRemoteReg, ticketRemoteDisp, ticketRemoteExe := config.GenerateServiceNames(config.TicketBaseName, "Remote")
+	ticketRemoteReg, ticketRemoteDisp, ticketRemoteExe := config.GenerateServiceNames(config.TicketBaseName, "Remoto")
 
-	return map[string][]ServiceVariant{
+	return map[string][]Variant{
 		"scale": {
 			{
 				ID:           "scale-local",
@@ -50,7 +50,7 @@ func GetServiceRegistry() map[string][]ServiceVariant {
 			{
 				ID:           "scale-remote",
 				Family:       "scale",
-				Variant:      "Remote",
+				Variant:      "Remoto",
 				RegistryName: scaleRemoteReg,
 				DisplayName:  scaleRemoteDisp,
 				ExeName:      scaleRemoteExe,
@@ -70,7 +70,7 @@ func GetServiceRegistry() map[string][]ServiceVariant {
 			{
 				ID:           "ticket-remote",
 				Family:       "ticket",
-				Variant:      "Remote",
+				Variant:      "Remoto",
 				RegistryName: ticketRemoteReg,
 				DisplayName:  ticketRemoteDisp,
 				ExeName:      ticketRemoteExe,

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/charmbracelet/bubbles/list"
 
@@ -69,13 +70,12 @@ func formatFamilyStatus(fs service.FamilyStatus) string {
 
 // buildFamilyMenuItems creates the menu for managing a specific service family.
 // This function ENFORCES mutual exclusivity by controlling which options appear:
-// - If neither variant is installed → show install options for Local AND Remote
+// - If neither variant is installed → show install options for Local AND Remoto
 // - If one variant is installed → show lifecycle actions for that variant ONLY
-// - The install option for the OTHER variant NEVER appears when one is installed
-func buildFamilyMenuItems(family string, fs service.FamilyStatus) []list.Item {
+// - The installation option for the OTHER variant NEVER appears when one is installed
+func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
 	installed := fs.GetInstalledVariant()
 
-	// ── SCENARIO A: Clean slate (neither variant installed) ──
 	if installed == "" {
 		return []list.Item{
 			menuItem{
@@ -99,36 +99,52 @@ func buildFamilyMenuItems(family string, fs service.FamilyStatus) []list.Item {
 		}
 	}
 
-	// ── SCENARIO B: One variant is installed ──
 	status := fs.GetActiveStatus()
-	items := []list.Item{}
+	var items []list.Item
 
-	// Conditional actions based on service state
-	if status == service.StatusStopped {
+	switch status {
+	case service.StatusStopped:
 		items = append(items, menuItem{
 			title:       "Iniciar Servicio",
 			description: "Inicia el servicio detenido",
 			icon:        "[>]",
 			data:        "start",
 		})
-	}
 
-	if status == service.StatusRunning {
+	case service.StatusRunning:
 		items = append(items, menuItem{
 			title:       "Detener Servicio",
 			description: "Detiene el servicio en ejecución",
 			icon:        "[.]",
 			data:        "stop",
-		})
+		},
+			menuItem{
+				title:       "Reiniciar Servicio",
+				description: "Reinicia el servicio (detiene e inicia)",
+				icon:        "[*]",
+				data:        "restart",
+			})
+
+	case service.StatusStopPending, service.StatusStartPending:
 		items = append(items, menuItem{
-			title:       "Reiniciar Servicio",
-			description: "Reinicia el servicio (detiene e inicia)",
-			icon:        "[*]",
-			data:        "restart",
+			title:       "Forzar Detención",
+			description: "El servicio está en transición — forzar detención",
+			icon:        "[!]",
+			data:        "force-stop",
 		})
+
+	case service.StatusUnknown:
+		items = append(items, menuItem{
+			title:       "Forzar Detención",
+			description: "Estado desconocido — intentar forzar detención del servicio",
+			icon:        "[!]",
+			data:        "force-stop",
+		})
+	default:
+		log.Printf("Estado inesperado para %s: %s", installed, status.String())
 	}
 
-	// Always available when a variant is installed
+	// Always available when installed
 	items = append(items,
 		menuItem{
 			title:       "Ver Logs",

@@ -121,7 +121,7 @@ func (m Model) handleStatusUpdate(msg statusUpdateMsg) (Model, tea.Cmd) {
 	case screenFamily:
 		if m.selectedFamily != "" {
 			fs := m.familyStatuses[m.selectedFamily]
-			items := buildFamilyMenuItems(m.selectedFamily, fs)
+			items := buildFamilyMenuItems(fs)
 			m.list.SetItems(items)
 		}
 	}
@@ -205,7 +205,7 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.confirmInstall("Local")
 
 		case "install-remote":
-			return m.confirmInstall("Remote")
+			return m.confirmInstall("Remoto")
 
 		case "start":
 			mgr := m.getActiveManager()
@@ -222,6 +222,16 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m.executeAction("Detener Servicio", mgr.Stop)
+
+		case "force-stop":
+			mgr := m.getActiveManager()
+			if mgr == nil {
+				m.statusMessage = "No se pudo determinar el servicio a detener."
+				return m, nil
+			}
+			// We use the standard Stop() which now includes force-kill logic if it hangs,
+			// or you can create a dedicated ForceStop method in manager.go
+			return m.executeAction("Forzar Detención", mgr.Stop)
 
 		case "restart":
 			mgr := m.getActiveManager()
@@ -352,21 +362,26 @@ func (m Model) confirmInstall(variant string) (Model, tea.Cmd) {
 		if err := mgr.Install(); err != nil {
 			return operationDoneMsg{
 				success: false,
-				message: fmt.Sprintf("[X] Error al instalar: %v", err),
+				message: fmt.Sprintf(
+					"[X] No se pudo instalar %s %s\n\nDetalle: %v\n\nVerifique que no exista una instalación previa.",
+					capitalize(m.selectedFamily), variant, err),
 			}
 		}
 
-		// Auto-start after install
 		if err := mgr.Start(); err != nil {
 			return operationDoneMsg{
-				success: true,
-				message: fmt.Sprintf("[+] %s instalado (inicio manual requerido: %v)", variant, err),
+				success: true, // Install succeeded even though start failed
+				message: fmt.Sprintf(
+					"[+] %s %s instalado correctamente\n\n[!] El servicio no pudo iniciarse automáticamente.\nUse 'Iniciar Servicio' desde el menú o Services.msc.\n\nDetalle: %v",
+					capitalize(m.selectedFamily), variant, err),
 			}
 		}
 
 		return operationDoneMsg{
 			success: true,
-			message: fmt.Sprintf("[+] %s instalado y iniciado correctamente", variant),
+			message: fmt.Sprintf(
+				"[+] %s %s instalado e iniciado correctamente\n\nEl servicio está activo y configurado para inicio automático.",
+				capitalize(m.selectedFamily), variant),
 		}
 	}
 

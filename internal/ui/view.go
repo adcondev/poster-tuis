@@ -75,7 +75,7 @@ func (m Model) viewFamily() string {
 		b.WriteString(titleStyle.Render(
 			fmt.Sprintf("%s - SIN INSTALAR", strings.ToUpper(m.selectedFamily))) + "\n")
 		b.WriteString(infoStyle.Render(
-			"Seleccione una versión para instalar (Local o Remote)") + "\n\n")
+			"Seleccione una versión para instalar (Local o Remoto)") + "\n\n")
 	} else {
 		status := fs.GetActiveStatus()
 		b.WriteString(titleStyle.Render(
@@ -174,7 +174,7 @@ func (m Model) viewConfirm() string {
 		Align(lipgloss.Center)
 
 	content := fmt.Sprintf("[!] CONFIRMACIÓN\n\n%s\n\n", m.confirmAction)
-	content += successStyle.Render("[S]í") + "    " + errorStyle.Render("[N]o")
+	content += successStyle.Render("[S]í") + "    " + warningStyle.Render("[N]o")
 
 	b.WriteString(confirmBox.Render(content))
 

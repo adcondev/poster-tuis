@@ -15,17 +15,17 @@ import (
 
 // Manager handles Windows service lifecycle operations for a specific variant
 type Manager struct {
-	variant ServiceVariant
+	variant Variant
 }
 
 // NewManager creates a manager for a specific service variant
-func NewManager(variant ServiceVariant) *Manager {
+func NewManager(variant Variant) *Manager {
 	return &Manager{variant: variant}
 }
 
 // validateServiceVariantFields checks that ServiceVariant fields are safe
 // and contain only expected characters to prevent command injection
-func validateServiceVariantFields(variant ServiceVariant) error {
+func validateServiceVariantFields(variant Variant) error {
 	// Check RegistryName
 	if !isValidServiceName(variant.RegistryName) {
 		return fmt.Errorf("invalid RegistryName: contains unsafe characters")
@@ -98,6 +98,12 @@ func (m *Manager) Install() error {
 		return fmt.Errorf("validación de campos: %w", err)
 	}
 
+	// Pre-check: fail fast if already registered
+	currentStatus := m.CheckStatus()
+	if currentStatus != StatusNotInstalled {
+		return fmt.Errorf("el servicio ya está registrado (estado: %s) — desinstale primero", currentStatus)
+	}
+
 	targetDir := filepath.Join(os.Getenv("ProgramFiles"), m.variant.RegistryName)
 	targetPath := filepath.Join(targetDir, m.variant.ExeName)
 
@@ -118,11 +124,17 @@ func (m *Manager) Install() error {
 		"start=auto",
 		fmt.Sprintf("DisplayName=\"%s\"", m.variant.DisplayName))
 
+	// 4. More descriptive on common failures
 	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("sc create: %s", strings.TrimSpace(string(output)))
+		outputStr := strings.TrimSpace(string(output))
+		_ = os.RemoveAll(targetDir)
+		if strings.Contains(outputStr, "1073") {
+			return fmt.Errorf("el servicio ya existe en el registro de Windows (use Desinstalar primero)")
+		}
+		return fmt.Errorf("no se pudo registrar el servicio: %s", outputStr)
 	}
 
-	// 4. Configure failure recovery (restart on failure)
+	// 5. Configure failure recovery (restart on failure)
 	_ = exec.Command("sc", "failure", m.variant.RegistryName,
 		"reset=86400",
 		"actions=restart/5000/restart/5000/restart/5000").Run()
@@ -133,25 +145,43 @@ func (m *Manager) Install() error {
 // Uninstall stops the service, removes it from the registry,
 // and deletes the binary files from disk.
 func (m *Manager) Uninstall() error {
-	// Stop first (ignore errors — might not be running)
-	_ = exec.Command("sc", "stop", m.variant.RegistryName).Run()
+	// Step 1: Attempt to stop the service
+	stopErr := exec.Command("sc", "stop", m.variant.RegistryName).Run()
 
-	// Wait for service to stop with timeout (max 10 seconds)
-	m.WaitForStatus(StatusStopped, 10*time.Second)
+	// Step 2: Wait for STOPPED state with proper timeout
+	if stopErr == nil {
+		stopped := m.WaitForStatus(StatusStopped, 15*time.Second)
+		if !stopped {
+			// Force-kill the service process as a last resort
+			_ = exec.Command("taskkill", "/F", "/FI",
+				fmt.Sprintf("SERVICES eq %s", m.variant.RegistryName)).Run()
+			// Wait again briefly after force-kill
+			m.WaitForStatus(StatusStopped, 5*time.Second)
+		}
+	}
 
-	// Delete service from registry
+	// Step 3: Delete service from registry
 	cmd := exec.Command("sc", "delete", m.variant.RegistryName)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		outputStr := string(output)
 		if strings.Contains(outputStr, "1060") {
-			return fmt.Errorf("servicio no instalado")
+			return fmt.Errorf("el servicio no está instalado")
+		}
+		if strings.Contains(outputStr, "1072") {
+			// Service marked for deletion — will complete after process exits
+			// This is not a hard failure; inform the user
+			return fmt.Errorf("servicio marcado para eliminación (se completará al cerrar el proceso)")
 		}
 		return fmt.Errorf("sc delete: %s", strings.TrimSpace(outputStr))
 	}
 
-	// Remove binary files from disk
+	// Step 4: Remove binary files from disk
 	targetDir := filepath.Join(os.Getenv("ProgramFiles"), m.variant.RegistryName)
-	return os.RemoveAll(targetDir)
+	if err := os.RemoveAll(targetDir); err != nil {
+		return fmt.Errorf("no se pudieron eliminar los archivos: %w (puede que el proceso aún esté activo)", err)
+	}
+
+	return nil
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -179,24 +209,26 @@ func (m *Manager) Stop() error {
 	if output, err := cmd.CombinedOutput(); err != nil {
 		outputStr := string(output)
 		if strings.Contains(outputStr, "1062") {
-			return fmt.Errorf("el servicio no está en ejecución")
+			return fmt.Errorf("el servicio '%s' no está en ejecución", m.variant.DisplayName)
 		}
-		return fmt.Errorf("sc stop: %s", strings.TrimSpace(outputStr))
+		return fmt.Errorf("no se pudo detener '%s': %s", m.variant.DisplayName, strings.TrimSpace(outputStr))
 	}
 	return nil
 }
 
-// Restart stops and starts the service with proper status polling
 func (m *Manager) Restart() error {
-	// Stop — ignore "not running" errors
-	if err := m.Stop(); err != nil {
-		if !strings.Contains(err.Error(), "1062") {
-			return err
+	currentStatus := m.CheckStatus()
+
+	// Only try to stop if actually running or in a running-like state
+	if currentStatus == StatusRunning || currentStatus == StatusStartPending {
+		if err := m.Stop(); err != nil {
+			return fmt.Errorf("no se pudo detener el servicio para reiniciar: %w", err)
 		}
 	}
 
-	// Wait for service to stop with timeout (max 10 seconds)
-	m.WaitForStatus(StatusStopped, 10*time.Second)
+	if !m.WaitForStatus(StatusStopped, 15*time.Second) {
+		return fmt.Errorf("el servicio no se detuvo a tiempo para reiniciar")
+	}
 
 	return m.Start()
 }

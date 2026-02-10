@@ -4,7 +4,7 @@
 
 version: '3'
 
-silent: false
+silent: true
 
 vars:
   # ══════════════════════════════════════════════════════════════
@@ -24,15 +24,15 @@ vars:
   # ══════════════════════════════════════════════════════════════
   # Scale (Bascula)
   SCALE_CONSOLE_LOCAL: "R2k_BasculaConsole_Local.exe"
-  SCALE_CONSOLE_REMOTE: "R2k_BasculaConsole_Remote.exe"
+  SCALE_CONSOLE_REMOTE: "R2k_BasculaConsole_Remoto.exe"
   SCALE_SERVICE_LOCAL: "R2k_BasculaServicio_Local.exe"
-  SCALE_SERVICE_REMOTE: "R2k_BasculaServicio_Remote.exe"
+  SCALE_SERVICE_REMOTE: "R2k_BasculaServicio_Remoto.exe"
 
   # Ticket
   TICKET_CONSOLE_LOCAL: "R2k_TicketConsole_Local.exe"
-  TICKET_CONSOLE_REMOTE: "R2k_TicketConsole_Remote.exe"
+  TICKET_CONSOLE_REMOTE: "R2k_TicketConsole_Remoto.exe"
   TICKET_SERVICE_LOCAL: "R2k_TicketServicio_Local.exe"
-  TICKET_SERVICE_REMOTE: "R2k_TicketServicio_Remote.exe"
+  TICKET_SERVICE_REMOTE: "R2k_TicketServicio_Remoto.exe"
 
   # ══════════════════════════════════════════════════════════════
   # 🔧 LDFLAGS CONFIGURATION
@@ -48,17 +48,17 @@ vars:
   # 🪟 SERVICE IDENTIFIERS (Windows Service Registry Names)
   # ══════════════════════════════════════════════════════════════
   # Scale
-  SCALE_SVC_ID_LOCAL: "R2k_Bascula_Local"
-  SCALE_SVC_ID_REMOTE: "R2k_Bascula_Remote"
+  SCALE_SVC_ID_LOCAL: "R2k_BasculaServicio_Local"
+  SCALE_SVC_ID_REMOTE: "R2k_BasculaServicio_Remoto"
   SCALE_CMD_ID_LOCAL: "R2k_BasculaCmd_Local"
-  SCALE_CMD_ID_REMOTE: "R2k_BasculaCmd_Remote"
-  SCALE_SVC_DISPLAY_REMOTE: "R2k Bascula Service (REMOTE)"
-  SCALE_SVC_DESC_REMOTE: "Servicio de comunicacion con bascula via WebSocket"
+  SCALE_CMD_ID_REMOTE: "R2k_BasculaCmd_Remoto"
+  SCALE_SVC_DISPLAY_REMOTE: "R2k Bascula Servicio (REMOTO)"
+  SCALE_SVC_DESC_REMOTE: "Servicio de comunicación con bascula via WebSocket"
 
   # Ticket
-  TICKET_SVC_ID_REMOTE: "R2k_Ticket_Remote"
-  TICKET_SVC_DISPLAY_REMOTE: "R2k Ticket Service (REMOTE)"
-  TICKET_SVC_DESC_REMOTE: "Servicio de impresion de tickets POS via WebSocket"
+  TICKET_SVC_ID_REMOTE: "R2k_TicketServicio_Remoto"
+  TICKET_SVC_DISPLAY_REMOTE: "R2k Ticket Servicio (REMOTO)"
+  TICKET_SVC_DESC_REMOTE: "Servicio de impresión de tickets POS via WebSocket"
 
   # ══════════════════════════════════════════════════════════════
   # 🎯 INSTALLER CONFIGURATION
@@ -492,12 +492,12 @@ tasks:
       - echo "✅ Built R2k_BasculaServicio_Local.exe for installer"
 
   installer:build:scale-remote:
-    desc: "📦 Build Scale Service (Remote) for embedding"
+    desc: "📦 Build Scale Service (Remoto) for embedding"
     dir: "{{.SCALE_SRC}}"
     deps: [ init:assets ]
     cmds:
-      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X main.BuildEnvironment=remote -X main.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/R2k_BasculaServicio_Remote.exe" ./cmd/BasculaServicio
-      - echo "✅ Built R2k_BasculaServicio_Remote.exe for installer"
+      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X main.BuildEnvironment=remote -X main.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/R2k_BasculaServicio_Remoto.exe" ./cmd/BasculaServicio
+      - echo "✅ Built R2k_BasculaServicio_Remoto.exe for installer"
 
   installer:build:ticket-local:
     desc: "📦 Build Ticket Service (Local) for embedding"
@@ -508,12 +508,12 @@ tasks:
       - echo "✅ Built R2k_TicketServicio_Local.exe for installer"
 
   installer:build:ticket-remote:
-    desc: "📦 Build Ticket Service (Remote) for embedding"
+    desc: "📦 Build Ticket Service (Remoto) for embedding"
     dir: "{{.TICKET_SRC}}"
     deps: [ init:assets ]
     cmds:
-      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=prod" -o "{{.ASSETS_BIN_DIR}}/R2k_TicketServicio_Remote.exe" ./cmd/TicketServicio
-      - echo "✅ Built R2k_TicketServicio_Remote.exe for installer"
+      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=prod" -o "{{.ASSETS_BIN_DIR}}/R2k_TicketServicio_Remoto.exe" ./cmd/TicketServicio
+      - echo "✅ Built R2k_TicketServicio_Remoto.exe for installer"
 
   installer:build:services:
     desc: "📦 Build ALL service binaries for embedding (4 total)"
@@ -535,7 +535,7 @@ tasks:
       - echo ""
       - echo "══════════════════════════════════════════════════════════════"
       - echo "  ✅ INSTALLER BUILD COMPLETE"
-      - echo "  📁 Output: {{.DIST_DIR}}/R2k_Instalador.exe"
+      - echo "  📁 Output:{{.DIST_DIR}}/R2k_Instalador.exe"
       - echo "══════════════════════════════════════════════════════════════"
 
   installer:rebuild:
