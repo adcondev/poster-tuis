@@ -4,22 +4,17 @@ import "fmt"
 
 // Variables injected by Taskfile (ldflags)
 var (
-	BuildDate      string
-	BuildTime      string
-	ScaleBaseName  string
-	TicketBaseName string
+	BuildDate           string
+	BuildTime           string
+	ScaleIDLocal        string
+	ScaleIDRemote       string
+	ScaleDisplayLocal   string
+	ScaleDisplayRemote  string
+	TicketIDLocal       string
+	TicketIDRemote      string
+	TicketDisplayLocal  string
+	TicketDisplayRemote string
 )
-
-const (
-	ServiceSuffix = "Servicio"
-)
-
-func GenerateServiceNames(baseName, variant string) (registryName, displayName, exeName string) {
-	registryName = fmt.Sprintf("%s%s_%s", baseName, ServiceSuffix, variant)
-	displayName = fmt.Sprintf("%s %s (%s)", baseName, ServiceSuffix, variant)
-	exeName = fmt.Sprintf("%s.exe", registryName)
-	return
-}
 
 func GetBanner() string {
 	// Build the "Build:" line dynamically and then pad/truncate it to fit the banner width.
@@ -28,7 +23,7 @@ func GetBanner() string {
 	return fmt.Sprintf(`
 ╔═════════════════════════════════════════════╗
 ║        SERVICE FAMILY MANAGER v2.0          ║
-║         %s         ║
+║        %s        ║
 ║                                             ║
 ║     Gestión de Servicios Red2000            ║
 ║     - Scale Service (Local/Remoto)          ║

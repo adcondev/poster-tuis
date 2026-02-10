@@ -18,7 +18,7 @@ var BasculaLocalBinary []byte
 
 // BasculaRemoteBinary contains the Scale Service (Remoto) executable
 //
-//go:embed bin/R2k_BasculaServicio_Remoto.exe
+//go:embed bin/R2k_BasculaServicio_Remote.exe
 var BasculaRemoteBinary []byte
 
 // TicketLocalBinary contains the Ticket Service (Local) executable
@@ -28,5 +28,5 @@ var TicketLocalBinary []byte
 
 // TicketRemoteBinary contains the Ticket Service (Remoto) executable
 //
-//go:embed bin/R2k_TicketServicio_Remoto.exe
+//go:embed bin/R2k_TicketServicio_Remote.exe
 var TicketRemoteBinary []byte
