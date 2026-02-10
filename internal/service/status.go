@@ -46,14 +46,14 @@ func (s Status) String() string {
 
 // FamilyStatus represents the combined state of both variants in a family.
 // This is the KEY structure for enforcing mutual exclusivity:
-// only one variant (Local OR Remote) can be installed at a time.
+// only one variant (Local OR Remoto) can be installed at a time.
 type FamilyStatus struct {
 	LocalStatus  Status
 	RemoteStatus Status
 }
 
 // GetInstalledVariant returns which variant is currently installed.
-// Returns: "Local", "Remote", or "" if neither is installed.
+// Returns: "Local", "Remoto", or "" if neither is installed.
 // CRITICAL: Used by the UI to determine which menu options to show.
 func (fs FamilyStatus) GetInstalledVariant() string {
 	localInstalled := fs.LocalStatus != StatusNotInstalled
@@ -67,7 +67,7 @@ func (fs FamilyStatus) GetInstalledVariant() string {
 		return "Local"
 	}
 	if remoteInstalled {
-		return "Remote"
+		return "Remoto"
 	}
 	return ""
 }
@@ -129,7 +129,7 @@ func CheckFamilyStatus(variants []Variant) FamilyStatus {
 		switch v.Variant {
 		case "Local":
 			fs.LocalStatus = status
-		case "Remote":
+		case "Remoto":
 			fs.RemoteStatus = status
 		}
 	}

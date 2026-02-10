@@ -75,7 +75,7 @@ func (m Model) viewFamily() string {
 		b.WriteString(titleStyle.Render(
 			fmt.Sprintf("%s - SIN INSTALAR", strings.ToUpper(m.selectedFamily))) + "\n")
 		b.WriteString(infoStyle.Render(
-			"Seleccione una versión para instalar (Local o Remote)") + "\n\n")
+			"Seleccione una versión para instalar (Local o Remoto)") + "\n\n")
 	} else {
 		status := fs.GetActiveStatus()
 		b.WriteString(titleStyle.Render(

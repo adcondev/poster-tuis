@@ -492,12 +492,12 @@ tasks:
       - echo "✅ Built R2k_BasculaServicio_Local.exe for installer"
 
   installer:build:scale-remote:
-    desc: "📦 Build Scale Service (Remote) for embedding"
+    desc: "📦 Build Scale Service (Remoto) for embedding"
     dir: "{{.SCALE_SRC}}"
     deps: [ init:assets ]
     cmds:
-      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X main.BuildEnvironment=remote -X main.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/R2k_BasculaServicio_Remote.exe" ./cmd/BasculaServicio
-      - echo "✅ Built R2k_BasculaServicio_Remote.exe for installer"
+      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X main.BuildEnvironment=remote -X main.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/R2k_BasculaServicio_Remoto.exe" ./cmd/BasculaServicio
+      - echo "✅ Built R2k_BasculaServicio_Remoto.exe for installer"
 
   installer:build:ticket-local:
     desc: "📦 Build Ticket Service (Local) for embedding"
@@ -508,12 +508,12 @@ tasks:
       - echo "✅ Built R2k_TicketServicio_Local.exe for installer"
 
   installer:build:ticket-remote:
-    desc: "📦 Build Ticket Service (Remote) for embedding"
+    desc: "📦 Build Ticket Service (Remoto) for embedding"
     dir: "{{.TICKET_SRC}}"
     deps: [ init:assets ]
     cmds:
-      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=prod" -o "{{.ASSETS_BIN_DIR}}/R2k_TicketServicio_Remote.exe" ./cmd/TicketServicio
-      - echo "✅ Built R2k_TicketServicio_Remote.exe for installer"
+      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=prod" -o "{{.ASSETS_BIN_DIR}}/R2k_TicketServicio_Remoto.exe" ./cmd/TicketServicio
+      - echo "✅ Built R2k_TicketServicio_Remoto.exe for installer"
 
   installer:build:services:
     desc: "📦 Build ALL service binaries for embedding (4 total)"

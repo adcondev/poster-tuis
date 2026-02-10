@@ -205,7 +205,7 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.confirmInstall("Local")
 
 		case "install-remote":
-			return m.confirmInstall("Remote")
+			return m.confirmInstall("Remoto")
 
 		case "start":
 			mgr := m.getActiveManager()

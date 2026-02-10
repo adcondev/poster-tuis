@@ -31,8 +31,8 @@ func GetBanner() string {
 ║         %s         ║
 ║                                             ║
 ║     Gestión de Servicios Red2000            ║
-║     - Scale Service (Local/Remote)          ║
-║     - Ticket Service (Local/Remote)         ║
+║     - Scale Service (Local/Remoto)          ║
+║     - Ticket Service (Local/Remoto)         ║
 ║                                             ║
 ╚═════════════════════════════════════════════╝`,
 		buildInfo,
