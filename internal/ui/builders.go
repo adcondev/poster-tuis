@@ -70,7 +70,7 @@ func formatFamilyStatus(fs service.FamilyStatus) string {
 
 // buildFamilyMenuItems creates the menu for managing a specific service family.
 // This function ENFORCES mutual exclusivity by controlling which options appear:
-// - If neither variant is installed → show install options for Local AND Remote
+// - If neither variant is installed → show install options for Local AND Remoto
 // - If one variant is installed → show lifecycle actions for that variant ONLY
 // - The installation option for the OTHER variant NEVER appears when one is installed
 func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
