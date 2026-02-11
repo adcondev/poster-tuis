@@ -28,54 +28,31 @@ type Variant struct {
 // Returns map with keys: "scale", "ticket"
 // Each key maps to a slice of 2 variants (Local, Remoto).
 func GetServiceRegistry() map[string][]Variant {
-	// Generate naming for Scale family
-	scaleLocalReg, scaleLocalDisp, scaleLocalExe := config.GenerateServiceNames(config.ScaleBaseName, "Local")
-	scaleRemoteReg, scaleRemoteDisp, scaleRemoteExe := config.GenerateServiceNames(config.ScaleBaseName, "Remoto")
+	// Helper to generate Display Name and Exe Name
+	// We use the ID from config as the filename base to ensure consistency
+	makeVariant := func(id, family, variantStr, registryID, displayName string, binary []byte) Variant {
+		exeName := registryID + ".exe"
 
-	// Generate naming for Ticket family
-	ticketLocalReg, ticketLocalDisp, ticketLocalExe := config.GenerateServiceNames(config.TicketBaseName, "Local")
-	ticketRemoteReg, ticketRemoteDisp, ticketRemoteExe := config.GenerateServiceNames(config.TicketBaseName, "Remoto")
+		return Variant{
+			ID:           id,
+			Family:       family,
+			Variant:      variantStr,
+			RegistryName: registryID, // <--- DIRECTLY FROM TASKFILE
+			DisplayName:  displayName,
+			ExeName:      exeName,
+			Binary:       binary,
+		}
+	}
 
 	return map[string][]Variant{
 		"scale": {
-			{
-				ID:           "scale-local",
-				Family:       "scale",
-				Variant:      "Local",
-				RegistryName: scaleLocalReg,
-				DisplayName:  scaleLocalDisp,
-				ExeName:      scaleLocalExe,
-				Binary:       assets.BasculaLocalBinary,
-			},
-			{
-				ID:           "scale-remote",
-				Family:       "scale",
-				Variant:      "Remoto",
-				RegistryName: scaleRemoteReg,
-				DisplayName:  scaleRemoteDisp,
-				ExeName:      scaleRemoteExe,
-				Binary:       assets.BasculaRemoteBinary,
-			},
+			makeVariant("scale-local", "scale", "Local", config.ScaleIDLocal, config.ScaleDisplayLocal, assets.BasculaLocalBinary),
+			// ID is "scale-remoto" so UI lookup matches "Remoto"
+			makeVariant("scale-remoto", "scale", "Remoto", config.ScaleIDRemote, config.ScaleDisplayRemote, assets.BasculaRemoteBinary),
 		},
 		"ticket": {
-			{
-				ID:           "ticket-local",
-				Family:       "ticket",
-				Variant:      "Local",
-				RegistryName: ticketLocalReg,
-				DisplayName:  ticketLocalDisp,
-				ExeName:      ticketLocalExe,
-				Binary:       assets.TicketLocalBinary,
-			},
-			{
-				ID:           "ticket-remote",
-				Family:       "ticket",
-				Variant:      "Remoto",
-				RegistryName: ticketRemoteReg,
-				DisplayName:  ticketRemoteDisp,
-				ExeName:      ticketRemoteExe,
-				Binary:       assets.TicketRemoteBinary,
-			},
+			makeVariant("ticket-local", "ticket", "Local", config.TicketIDLocal, config.TicketDisplayLocal, assets.TicketLocalBinary),
+			makeVariant("ticket-remoto", "ticket", "Remoto", config.TicketIDRemote, config.TicketDisplayRemote, assets.TicketRemoteBinary),
 		},
 	}
 }
