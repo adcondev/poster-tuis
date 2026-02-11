@@ -16,20 +16,49 @@ var (
 	TicketDisplayRemote string
 )
 
-func GetBanner() string {
-	// Build the "Build:" line dynamically and then pad/truncate it to fit the banner width.
-	buildInfo := fmt.Sprintf("Build: %s %s", BuildDate, BuildTime)
+// Define ANSI color codes for the "dope" look
+var colors = map[string]string{
+	"reset":  "\033[0m",
+	"cyan":   "\033[36m",
+	"blue":   "\033[34m",
+	"green":  "\033[32m",
+	"yellow": "\033[33m",
+	"white":  "\033[97m",
+	"bold":   "\033[1m",
+}
 
-	return fmt.Sprintf(`
-╔═════════════════════════════════════════════╗
-║        SERVICE FAMILY MANAGER v2.0          ║
-║        %s        ║
-║                                             ║
-║     Gestión de Servicios Red2000            ║
-║     - Scale Service (Local/Remoto)          ║
-║     - Ticket Service (Local/Remoto)         ║
-║                                             ║
-╚═════════════════════════════════════════════╝`,
-		buildInfo,
+func GetBanner() string {
+	// Build Info (ejemplo)
+	buildStr := fmt.Sprintf("Build: %s", BuildDate)
+
+	// CORRECCIÓN CLAVE:
+	// 1. El backtick (`) empieza inmediatamente con el string, sin salto de línea previo.
+	// 2. Se eliminaron líneas vacías internas para reducir la altura total.
+
+	return fmt.Sprintf(`%s╔══════════════════════════════════════════════════════╗%s
+%s║    ██████╗ ██████╗ ██╗  ██╗                          ║%s
+%s║    ██╔══██╗╚════██╗██║ ██╔╝   %sInstaller v2.0%s         %s║%s
+%s║    ██████╔╝ █████╔╝█████╔╝    %s%s%s      %s║%s
+%s║    ██╔══██╗██╔═══╝ ██╔═██╗                           ║%s
+%s║    ██║  ██║███████╗██║  ██╗   %sPOS Services%s           %s║%s
+%s║    ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝                          ║%s
+%s║          Instalador de Servicios POS                 ║%s
+%s║            (C) 2025 Red2000 R2k                      ║%s
+%s╚══════════════════════════════════════════════════════╝%s`,
+		// Border Colors
+		colors["blue"], colors["reset"],
+
+		// R2K Logo (Cyan)
+		colors["cyan"], colors["reset"],
+		colors["cyan"], colors["white"], colors["cyan"], colors["blue"], colors["reset"],
+		colors["cyan"], colors["reset"], colors["yellow"], buildStr, colors["blue"], colors["reset"],
+		colors["cyan"], colors["reset"],
+		colors["cyan"], colors["green"], colors["cyan"], colors["blue"], colors["reset"],
+		colors["cyan"], colors["reset"],
+
+		// Footer
+		colors["blue"], colors["reset"],
+		colors["blue"], colors["reset"],
+		colors["blue"], colors["reset"],
 	)
 }

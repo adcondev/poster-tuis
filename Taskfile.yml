@@ -17,6 +17,8 @@ vars:
   TIME:
     sh: powershell -Command "Get-Date -Format 'HH:mm:ss'"
 
+  INSTALLER_SVC_NAME: "R2k_Installer.exe"
+
   # ══════════════════════════════════════════════════════════════
   # 🔧 LDFLAGS CONFIGURATION
   # ══════════════════════════════════════════════════════════════
@@ -114,7 +116,7 @@ tasks:
     deps: [ init:assets ]
     internal: true
     cmds:
-      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X main.BuildEnvironment=local -X main.ServiceName={{.SCALE_SVC_ID_LOCAL}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_LOCAL}}.exe" ./cmd/BasculaServicio
+      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X {{.SCALE_MODULE}}.BuildEnvironment=local -X {{.SCALE_MODULE}}.ServiceName={{.SCALE_SVC_ID_LOCAL}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_LOCAL}}.exe" ./cmd/BasculaServicio
       - echo "✅ Built {{.SCALE_SVC_ID_LOCAL}}.exe for installer"
 
   installer:build:scale-remote:
@@ -123,7 +125,7 @@ tasks:
     deps: [ init:assets ]
     internal: true
     cmds:
-      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X main.BuildEnvironment=remote -X main.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_REMOTE}}.exe" ./cmd/BasculaServicio
+      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X {{.SCALE_MODULE}}.BuildEnvironment=remote -X {{.SCALE_MODULE}}.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_REMOTE}}.exe" ./cmd/BasculaServicio
       - echo "✅ Built {{.SCALE_SVC_ID_REMOTE}}.exe for installer"
 
   installer:build:ticket-local:
@@ -160,7 +162,7 @@ tasks:
     desc: "🚀 Build TUI Installer with embedded services"
     deps: [ installer:build:services, init:dist ]
     cmds:
-      - go build -ldflags "{{.LDFLAGS_INSTALLER}}" -o "{{.DIST_DIR}}/R2k_Instalador.exe" ./cmd/R2kInstaller
+      - go build -ldflags "{{.LDFLAGS_INSTALLER}}" -o "{{.DIST_DIR}}/{{.INSTALLER_SVC_NAME}}" ./cmd/R2kInstaller
       - echo ""
       - echo "══════════════════════════════════════════════════════════════"
       - echo "  ✅ INSTALLER BUILD COMPLETE"
