@@ -22,7 +22,7 @@ vars:
   # ══════════════════════════════════════════════════════════════
   # 🔧 LDFLAGS CONFIGURATION
   # ══════════════════════════════════════════════════════════════
-  # Scale uses 'main' package variables
+  # Scale uses internal/config package variables (see SCALE_MODULE)
   SCALE_MODULE: "github.com/adcondev/scale-daemon/internal/config"
   LDFLAGS_SCALE_BASE: "-s -w -X {{.SCALE_MODULE}}.BuildDate={{.DATE}} -X {{.SCALE_MODULE}}.BuildTime={{.TIME}}"
 
@@ -143,7 +143,7 @@ tasks:
     deps: [ init:assets ]
     internal: true
     cmds:
-      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=remote " -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_REMOTE}}.exe" ./cmd/TicketServicio
+      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=remote" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_REMOTE}}.exe" ./cmd/TicketServicio
       - echo "✅ Built {{.TICKET_SVC_ID_REMOTE}}.exe for installer"
 
   installer:build:services:
@@ -193,7 +193,7 @@ tasks:
     desc: "🧹 Clean all project bin and tmp directories"
     internal: true
     cmds:
-      - task: clean
+
       - task: clean:installer
       - cmd: powershell -Command "Remove-Item -Path '../scale-daemon/bin', '../scale-daemon/tmp', '../ticket-daemon/bin' -Recurse -Force -ErrorAction SilentlyContinue"
         platforms: [ windows ]
