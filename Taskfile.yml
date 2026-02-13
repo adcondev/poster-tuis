@@ -1,10 +1,11 @@
-# daemon-tuis/Taskfile.yml
+# poster-tuis/Taskfile.yml
 # Unified Build System for R2k Daemon Services
 # Dev: github.com/adcondev @ Red2000
 # https://taskfile.dev
 
 version: '3'
 
+# Silence all command output by default, set false for debug or use 'task --verbose' to override
 silent: true
 
 vars:
@@ -17,18 +18,43 @@ vars:
   TIME:
     sh: powershell -Command "Get-Date -Format 'HH:mm:ss'"
 
-  INSTALLER_SVC_NAME: "R2k_Installer.exe"
+  INSTALLER_SVC_NAME: "R2k_POS_Instalador.exe"
+
+  # ══════════════════════════════════════════════════════════════
+  # 🔐 SECURITY: Read secrets from .env, hash password via env var
+  # ══════════════════════════════════════════════════════════════
+
+  DASHBOARD_PASSWORD:
+    sh: powershell -Command "(Get-Content './.env' | Select-String 'DASHBOARD_PASSWORD=').ToString().Split('=',2)[1].Trim()"
+  CONFIG_AUTH_TOKEN:
+    sh: powershell -Command "(Get-Content './.env' | Select-String 'CONFIG_AUTH_TOKEN=').ToString().Split('=',2)[1].Trim()"
+
+  PASSWORD_HASH:
+    sh: cmd /C "set HASH_PW={{.DASHBOARD_PASSWORD}}&& go run ./cmd/hashpw/main.go"
+
+
 
   # ══════════════════════════════════════════════════════════════
   # 🔧 LDFLAGS CONFIGURATION
   # ══════════════════════════════════════════════════════════════
-  # Scale uses internal/config package variables (see SCALE_MODULE)
-  SCALE_MODULE: "github.com/adcondev/scale-daemon/internal/config"
-  LDFLAGS_SCALE_BASE: "-s -w -X {{.SCALE_MODULE}}.BuildDate={{.DATE}} -X {{.SCALE_MODULE}}.BuildTime={{.TIME}}"
+  # Scale uses internal/config package variables (see SCALE_CONFIG)
+  SCALE_CONFIG: "github.com/adcondev/scale-daemon/internal/config"
+  # Updated ldflags with security injections + trimpath
+  LDFLAGS_SCALE_BASE: >-
+    -s -w
+    -X {{.SCALE_CONFIG}}.BuildDate={{.DATE}}
+    -X {{.SCALE_CONFIG}}.BuildTime={{.TIME}}
+    -X {{.SCALE_CONFIG}}.PasswordHashB64={{.PASSWORD_HASH}}
+    -X {{.SCALE_CONFIG}}.AuthToken={{.CONFIG_AUTH_TOKEN}}
+    -H=windowsgui
 
   # Ticket uses internal/daemon package path
-  TICKET_MODULE: "github.com/adcondev/ticket-daemon/internal/config"
-  LDFLAGS_TICKET_BASE: "-s -w -X {{.TICKET_MODULE}}.BuildDate={{.DATE}} -X {{.TICKET_MODULE}}.BuildTime={{.TIME}}"
+  TICKET_CONFIG: "github.com/adcondev/ticket-daemon/internal/config"
+  LDFLAGS_TICKET_BASE: >-
+    -s -w
+    -X {{.TICKET_CONFIG}}.BuildDate={{.DATE}}
+    -X {{.TICKET_CONFIG}}.BuildTime={{.TIME}}
+    -H=windowsgui
 
   # ══════════════════════════════════════════════════════════════
   # 🏷️ NAMING CONVENTION: R2k_<<Daemon>><<Type>>_<<Env>>.exe
@@ -66,19 +92,20 @@ vars:
   TICKET_SRC: "../ticket-daemon"
 
   # Installer ldflags
-  CONFIG_PKG: "github.com/adcondev/poster-tuis/internal/config"
+  TUIS_CONFIG: "github.com/adcondev/poster-tuis/internal/config"
   LDFLAGS_INSTALLER: >-
     -s -w
-    -X '{{.CONFIG_PKG}}.BuildDate={{.DATE}}'
-    -X '{{.CONFIG_PKG}}.BuildTime={{.TIME}}'
-    -X '{{.CONFIG_PKG}}.ScaleIDLocal={{.SCALE_SVC_ID_LOCAL}}'
-    -X '{{.CONFIG_PKG}}.ScaleIDRemote={{.SCALE_SVC_ID_REMOTE}}'
-    -X '{{.CONFIG_PKG}}.ScaleDisplayLocal={{.SCALE_SVC_DISPLAY_LOCAL}}'
-    -X '{{.CONFIG_PKG}}.ScaleDisplayRemote={{.SCALE_SVC_DISPLAY_REMOTE}}'
-    -X '{{.CONFIG_PKG}}.TicketIDLocal={{.TICKET_SVC_ID_LOCAL}}'
-    -X '{{.CONFIG_PKG}}.TicketIDRemote={{.TICKET_SVC_ID_REMOTE}}'
-    -X '{{.CONFIG_PKG}}.TicketDisplayLocal={{.TICKET_SVC_DISPLAY_LOCAL}}'
-    -X '{{.CONFIG_PKG}}.TicketDisplayRemote={{.TICKET_SVC_DISPLAY_REMOTE}}'
+    -X '{{.TUIS_CONFIG}}.BuildDate={{.DATE}}'
+    -X '{{.TUIS_CONFIG}}.BuildTime={{.TIME}}'
+    -X '{{.TUIS_CONFIG}}.ScaleIDLocal={{.SCALE_SVC_ID_LOCAL}}'
+    -X '{{.TUIS_CONFIG}}.ScaleIDRemote={{.SCALE_SVC_ID_REMOTE}}'
+    -X '{{.TUIS_CONFIG}}.ScaleDisplayLocal={{.SCALE_SVC_DISPLAY_LOCAL}}'
+    -X '{{.TUIS_CONFIG}}.ScaleDisplayRemote={{.SCALE_SVC_DISPLAY_REMOTE}}'
+    -X '{{.TUIS_CONFIG}}.TicketIDLocal={{.TICKET_SVC_ID_LOCAL}}'
+    -X '{{.TUIS_CONFIG}}.TicketIDRemote={{.TICKET_SVC_ID_REMOTE}}'
+    -X '{{.TUIS_CONFIG}}.TicketDisplayLocal={{.TICKET_SVC_DISPLAY_LOCAL}}'
+    -X '{{.TUIS_CONFIG}}.TicketDisplayRemote={{.TICKET_SVC_DISPLAY_REMOTE}}'
+
 
 env:
   CGO_ENABLED: '0'
@@ -107,6 +134,18 @@ tasks:
     status:
       - test -d "{{.DIST_DIR}}"
 
+  debug:auth:
+    desc: "🔍 Debug: verify password hash pipeline"
+    cmds:
+      - echo Password from .env = {{.DASHBOARD_PASSWORD}}
+      - echo Auth token from .env = {{.CONFIG_AUTH_TOKEN}}
+      - echo ---
+      - cmd /C "set HASH_PW={{.DASHBOARD_PASSWORD}}&& go run ./cmd/hashpw/main.go"
+      - echo ---
+      - echo Base64 hash for ldflags = {{.PASSWORD_HASH}}
+      - echo Auth token for ldflags = {{.CONFIG_AUTH_TOKEN}}
+      - echo ---
+      - echo If the base64 string contains only A-Za-z0-9+/= chars, it is safe for ldflags.
   # ══════════════════════════════════════════════════════════════
   # 📦 INSTALLER SERVICE BUILDS (Output to assets/bin)
   # ══════════════════════════════════════════════════════════════
@@ -116,7 +155,7 @@ tasks:
     deps: [ init:assets ]
     internal: true
     cmds:
-      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X {{.SCALE_MODULE}}.BuildEnvironment=local -X {{.SCALE_MODULE}}.ServiceName={{.SCALE_SVC_ID_LOCAL}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_LOCAL}}.exe" ./cmd/BasculaServicio
+      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -X {{.SCALE_CONFIG}}.BuildEnvironment=local -X {{.SCALE_CONFIG}}.ServiceName={{.SCALE_SVC_ID_LOCAL}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_LOCAL}}.exe" ./cmd/BasculaServicio
       - echo "✅ Built {{.SCALE_SVC_ID_LOCAL}}.exe for installer"
 
   installer:build:scale-remote:
@@ -125,7 +164,7 @@ tasks:
     deps: [ init:assets ]
     internal: true
     cmds:
-      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X {{.SCALE_MODULE}}.BuildEnvironment=remote -X {{.SCALE_MODULE}}.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_REMOTE}}.exe" ./cmd/BasculaServicio
+      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -X {{.SCALE_CONFIG}}.BuildEnvironment=remote -X {{.SCALE_CONFIG}}.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_REMOTE}}.exe" ./cmd/BasculaServicio
       - echo "✅ Built {{.SCALE_SVC_ID_REMOTE}}.exe for installer"
 
   installer:build:ticket-local:
@@ -134,7 +173,7 @@ tasks:
     deps: [ init:assets ]
     internal: true
     cmds:
-      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=local" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_LOCAL}}.exe" ./cmd/TicketServicio
+      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -X {{.TICKET_CONFIG}}.BuildEnvironment=local" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_LOCAL}}.exe" ./cmd/TicketServicio
       - echo "✅ Built {{.TICKET_SVC_ID_LOCAL}}.exe for installer"
 
   installer:build:ticket-remote:
@@ -143,7 +182,7 @@ tasks:
     deps: [ init:assets ]
     internal: true
     cmds:
-      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=remote" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_REMOTE}}.exe" ./cmd/TicketServicio
+      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -X {{.TICKET_CONFIG}}.BuildEnvironment=remote" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_REMOTE}}.exe" ./cmd/TicketServicio
       - echo "✅ Built {{.TICKET_SVC_ID_REMOTE}}.exe for installer"
 
   installer:build:services:
