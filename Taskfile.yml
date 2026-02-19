@@ -5,6 +5,10 @@
 
 version: '3'
 
+# 1. Native Taskfile support for .env files!
+# This automatically loads your variables without using PowerShell.
+dotenv: [ '.env' ]
+
 # Silence all command output by default, set false for debug or use 'task --verbose' to override
 silent: true
 
@@ -21,18 +25,23 @@ vars:
   INSTALLER_SVC_NAME: "R2k_POS_Instalador.exe"
 
   # ══════════════════════════════════════════════════════════════
-  # 🔐 SECURITY: Read secrets from .env, hash password via env var
+  # 🔐 SECURITY: Variables loaded directly from .env
   # ══════════════════════════════════════════════════════════════
 
-  DASHBOARD_PASSWORD:
-    sh: powershell -Command "(Get-Content './.env' | Select-String 'DASHBOARD_PASSWORD=').ToString().Split('=',2)[1].Trim()"
-  CONFIG_AUTH_TOKEN:
-    sh: powershell -Command "(Get-Content './.env' | Select-String 'CONFIG_AUTH_TOKEN=').ToString().Split('=',2)[1].Trim()"
+  # 2. Those should be defined in your .env file, not hardcoded here.
+  # WARNING: If coded here they override .env values and pose a security risk if committed to version control.
+  # SCALE_AUTH_TOKEN: ""
+  # SCALE_DASHBOARD_PASSWORD: ""
+  # SCALE_PORT: ""
+  # TICKET_AUTH_TOKEN: ""
+  # TICKET_DASHBOARD_PASSWORD: ""
+  # TICKET_PORT: ""
 
-  PASSWORD_HASH:
-    sh: cmd /C "set HASH_PW={{.DASHBOARD_PASSWORD}}&& go run ./cmd/hashpw/main.go"
-
-
+  # Hash the password automatically loaded from .env
+  SCALE_PASSWORD_HASH:
+    sh: SCALE_HASH_PW='{{.SCALE_DASHBOARD_PASSWORD}}' go run -ldflags '-s -w -X main.Srvc=scale -H=windowsgui' ./cmd/hashpw/main.go
+  TICKET_PASSWORD_HASH:
+    sh: TICKET_HASH_PW='{{.TICKET_DASHBOARD_PASSWORD}}' go run -ldflags '-s -w -X main.Srvc=ticket -H=windowsgui' ./cmd/hashpw/main.go
 
   # ══════════════════════════════════════════════════════════════
   # 🔧 LDFLAGS CONFIGURATION
@@ -42,18 +51,22 @@ vars:
   # Updated ldflags with security injections + trimpath
   LDFLAGS_SCALE_BASE: >-
     -s -w
-    -X {{.SCALE_CONFIG}}.BuildDate={{.DATE}}
-    -X {{.SCALE_CONFIG}}.BuildTime={{.TIME}}
-    -X {{.SCALE_CONFIG}}.PasswordHashB64={{.PASSWORD_HASH}}
-    -X {{.SCALE_CONFIG}}.AuthToken={{.CONFIG_AUTH_TOKEN}}
+    -X '{{.SCALE_CONFIG}}.BuildDate={{.DATE}}'
+    -X '{{.SCALE_CONFIG}}.BuildTime={{.TIME}}'
+    -X '{{.SCALE_CONFIG}}.PasswordHashB64={{.SCALE_PASSWORD_HASH}}'
+    -X '{{.SCALE_CONFIG}}.AuthToken={{.SCALE_AUTH_TOKEN}}'
+    -X '{{.SCALE_CONFIG}}.ServerPort={{.SCALE_PORT}}'
     -H=windowsgui
 
   # Ticket uses internal/daemon package path
   TICKET_CONFIG: "github.com/adcondev/ticket-daemon/internal/config"
   LDFLAGS_TICKET_BASE: >-
     -s -w
-    -X {{.TICKET_CONFIG}}.BuildDate={{.DATE}}
-    -X {{.TICKET_CONFIG}}.BuildTime={{.TIME}}
+    -X '{{.TICKET_CONFIG}}.BuildDate={{.DATE}}'
+    -X '{{.TICKET_CONFIG}}.BuildTime={{.TIME}}'
+    -X '{{.TICKET_CONFIG}}.PasswordHashB64={{.TICKET_PASSWORD_HASH}}'
+    -X '{{.TICKET_CONFIG}}.AuthToken={{.TICKET_AUTH_TOKEN}}'
+    -X '{{.TICKET_CONFIG}}.ServerPort={{.TICKET_PORT}}'
     -H=windowsgui
 
   # ══════════════════════════════════════════════════════════════
@@ -137,15 +150,16 @@ tasks:
   debug:auth:
     desc: "🔍 Debug: verify password hash pipeline"
     cmds:
-      - echo Password from .env = {{.DASHBOARD_PASSWORD}}
-      - echo Auth token from .env = {{.CONFIG_AUTH_TOKEN}}
-      - echo ---
-      - cmd /C "set HASH_PW={{.DASHBOARD_PASSWORD}}&& go run ./cmd/hashpw/main.go"
-      - echo ---
-      - echo Base64 hash for ldflags = {{.PASSWORD_HASH}}
-      - echo Auth token for ldflags = {{.CONFIG_AUTH_TOKEN}}
-      - echo ---
-      - echo If the base64 string contains only A-Za-z0-9+/= chars, it is safe for ldflags.
+      - echo "Password from .env = {{.SCALE_DASHBOARD_PASSWORD}}"
+      - echo "Auth token from .env = {{.SCALE_AUTH_TOKEN}}"
+      - echo "Base64 hash for ldflags = '{{.SCALE_PASSWORD_HASH}}'"
+      - echo "If the base64 string contains only A-Za-z0-9+/= chars, it is safe for ldflags."
+      - echo "=========================================================="
+      - echo "Password from .env = {{.TICKET_DASHBOARD_PASSWORD}}"
+      - echo "Auth token from .env = {{.TICKET_AUTH_TOKEN}}"
+      - echo "Base64 hash for ldflags = '{{.TICKET_PASSWORD_HASH}}'"
+      - echo "If the base64 string contains only A-Za-z0-9+/= chars, it is safe for ldflags."
+
   # ══════════════════════════════════════════════════════════════
   # 📦 INSTALLER SERVICE BUILDS (Output to assets/bin)
   # ══════════════════════════════════════════════════════════════
@@ -173,7 +187,7 @@ tasks:
     deps: [ init:assets ]
     internal: true
     cmds:
-      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -X {{.TICKET_CONFIG}}.BuildEnvironment=local" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_LOCAL}}.exe" ./cmd/TicketServicio
+      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -X {{.TICKET_CONFIG}}.BuildEnvironment=local -X {{.TICKET_CONFIG}}.ServiceName={{.TICKET_SVC_ID_LOCAL}}" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_LOCAL}}.exe" ./cmd/TicketServicio
       - echo "✅ Built {{.TICKET_SVC_ID_LOCAL}}.exe for installer"
 
   installer:build:ticket-remote:
@@ -182,7 +196,7 @@ tasks:
     deps: [ init:assets ]
     internal: true
     cmds:
-      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -X {{.TICKET_CONFIG}}.BuildEnvironment=remote" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_REMOTE}}.exe" ./cmd/TicketServicio
+      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -X {{.TICKET_CONFIG}}.BuildEnvironment=remote -X {{.TICKET_CONFIG}}.ServiceName={{.TICKET_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_REMOTE}}.exe" ./cmd/TicketServicio
       - echo "✅ Built {{.TICKET_SVC_ID_REMOTE}}.exe for installer"
 
   installer:build:services:

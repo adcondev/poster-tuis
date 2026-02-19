@@ -1,3 +1,4 @@
+// Package main implements the entry point for the R2kInstaller TUI application. It checks for administrator privileges and launches the TUI if the check passes. If not, it displays instructions for running the installer with elevated permissions.
 package main
 
 import (
