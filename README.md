@@ -1,19 +1,14 @@
-Aquí tienes la traducción completa de la guía al español latino, manteniendo los términos técnicos clave y el formato
-original.
-
----
-
 # R2k Service Family Manager — Guía de Compilación, Pruebas y Ejecución
 
 ## Tabla de Contenidos
 
-1. [Prerrequisitos](https://www.google.com/search?q=%231-prerrequisitos)
-2. [Configuración del Repositorio](https://www.google.com/search?q=%232-configuraci%C3%B3n-del-repositorio)
-3. [Estructura del Proyecto](https://www.google.com/search?q=%233-estructura-del-proyecto)
-4. [Proceso de Compilación](https://www.google.com/search?q=%234-proceso-de-compilaci%C3%B3n)
-5. [Ejecución del Instalador](https://www.google.com/search?q=%235-ejecuci%C3%B3n-del-instalador)
-6. [Escenarios de Prueba](https://www.google.com/search?q=%236-escenarios-de-prueba)
-7. [Solución de Problemas](https://www.google.com/search?q=%237-soluci%C3%B3n-de-problemas)
+1. [Prerrequisitos](#1-prerrequisitos)
+2. [Configuración del Repositorio y Entorno](#2-configuración-del-repositorio-y-entorno)
+3. [Estructura del Proyecto](#3-estructura-del-proyecto)
+4. [Proceso de Compilación](#4-proceso-de-compilación)
+5. [Ejecución del Instalador](#5-ejecución-del-instalador)
+6. [Escenarios de Prueba](#6-escenarios-de-prueba)
+7. [Solución de Problemas](#7-solución-de-problemas)
 
 ---
 
@@ -42,7 +37,7 @@ git --version       # Esperado: git version 2.x+
 
 ---
 
-## 2. Configuración del Repositorio
+## 2. Configuración del Repositorio y Entorno
 
 Los tres repositorios deben ser **directorios hermanos** (al mismo nivel) — el Taskfile hace referencia a
 `../scale-daemon` y `../ticket-daemon` en relación con `poster-tuis`.
@@ -69,14 +64,21 @@ C:\dev\r2k\
 
 ```
 
-### Verificar Repositorios Hermanos
+### Configurar Variables de Entorno (.env)
 
-```powershell
-cd C:\dev\r2k\poster-tuis
+El `Taskfile.yml` requiere un archivo `.env` en la raíz de `poster-tuis` para hashear e inyectar las credenciales por
+seguridad.
 
-# Estos comandos deben resolverse correctamente:
-Test-Path ..\scale-daemon\cmd\BasculaServicio   # Esperado: True
-Test-Path ..\ticket-daemon\cmd\TicketServicio    # Esperado: True
+Cree un archivo `.env` en `C:\dev\r2k\poster-tuis\.env` con el siguiente contenido (ajuste los valores según su
+entorno):
+
+```env
+SCALE_DASHBOARD_PASSWORD=scale
+SCALE_AUTH_TOKEN=mi_token_secreto
+SCALE_PORT=8765
+TICKET_DASHBOARD_PASSWORD=ticket
+TICKET_AUTH_TOKEN=mi_token_secreto
+TICKET_PORT=8766
 
 ```
 
@@ -104,6 +106,7 @@ poster-tuis/
 ├── go.mod                           # Definición del módulo
 ├── go.sum                           # Checksums de dependencias
 ├── Taskfile.yml                     # Orquestación de compilación
+├── .env                             # Variables de seguridad (IGNORADO POR GIT)
 ├── .gitignore                       # Excluye bin/, dist/, internal/assets/bin/
 │
 ├── internal/
@@ -133,7 +136,7 @@ poster-tuis/
 │       └── styles.go                # Colores + estilos lipgloss
 │
 └── dist/                            # ← Generado por Taskfile (ignorado por git)
-    └── R2k_Instalador.exe           # Salida final (~15-20MB)
+    └── R2k_POS_Instalador.exe       # Salida final (~15-20MB)
 
 ```
 
@@ -169,9 +172,8 @@ task clean:all
 **Salida esperada:**
 
 ```
-✅ Cleaned ./bin
-✅ Cleaned installer artifacts
-✅ All projects cleaned
+✅ Artefactos del instalador limpiados
+✅ Todos los proyectos limpiados
 
 ```
 
@@ -187,13 +189,13 @@ task installer:build:services
 **Salida esperada:**
 
 ```
-✅ Built R2k_BasculaServicio_Local.exe for installer
-✅ Built R2k_BasculaServicio_Remote.exe for installer
-✅ Built R2k_TicketServicio_Local.exe for installer
-✅ Built R2k_TicketServicio_Remote.exe for installer
+✅ Compilado R2k_BasculaServicio_Local.exe para el instalador
+✅ Compilado R2k_BasculaServicio_Remote.exe para el instalador
+✅ Compilado R2k_TicketServicio_Local.exe para el instalador
+✅ Compilado R2k_TicketServicio_Remote.exe para el instalador
 
 ══════════════════════════════════════════════════════════════
-  ✅ All service binaries ready for embedding
+  ✅ Todos los binarios de servicios están listos para integrarse
 ══════════════════════════════════════════════════════════════
 
 ```
@@ -224,8 +226,8 @@ task installer:build
 
 ```
 ══════════════════════════════════════════════════════════════
-  ✅ INSTALLER BUILD COMPLETE
-  📁 Output: C:\dev\r2k\poster-tuis\dist\R2k_Instalador.exe
+  ✅ COMPILACIÓN DEL INSTALADOR FINALIZADA
+  📁 Salida: C:\dev\r2k\poster-tuis\dist
 ══════════════════════════════════════════════════════════════
 
 ```
@@ -233,19 +235,19 @@ task installer:build
 **Verificar tamaño del archivo** (debe ser de ~15-20MB porque contiene 4 binarios de servicio incrustados):
 
 ```powershell
-(Get-Item .\dist\R2k_Instalador.exe).Length / 1MB
+(Get-Item .\dist\R2k_POS_Instalador.exe).Length / 1MB
 # Esperado: aproximadamente 15-20
 
 ```
 
-### Compilación en un Comando (Pasos 1-3 Combinados)
+### Compilación en un Comando (Pasos Combinados)
 
 ```powershell
 task installer:rebuild
 
 ```
 
-Esto ejecuta `clean:installer` → `installer:build:services` → `installer:build` en secuencia.
+Esto ejecuta la limpieza de artefactos y luego reconstruye los binarios y el instalador final de forma secuencial.
 
 ---
 
@@ -261,7 +263,7 @@ lanza sin permisos de admin, muestra un mensaje de error y sale.
 **Opción A: Método de clic derecho**
 
 1. Navegue a la carpeta `dist\` en el Explorador de Archivos.
-2. Haga clic derecho en `R2k_Instalador.exe`.
+2. Haga clic derecho en `R2k_POS_Instalador.exe`.
 3. Seleccione **"Ejecutar como administrador"**.
 
 **Opción B: PowerShell como Admin**
@@ -269,7 +271,7 @@ lanza sin permisos de admin, muestra un mensaje de error y sale.
 ```powershell
 # Abra PowerShell como Administrador, luego:
 cd C:\dev\r2k\poster-tuis
-.\dist\R2k_Instalador.exe
+.\dist\R2k_POS_Instalador.exe
 
 ```
 
@@ -278,7 +280,7 @@ cd C:\dev\r2k\poster-tuis
 ```cmd
 :: Abra CMD como Administrador, luego:
 cd C:\dev\r2k\poster-tuis
-dist\R2k_Instalador.exe
+dist\R2k_POS_Instalador.exe
 
 ```
 
@@ -365,7 +367,7 @@ Abra **Services.msc** (`Win+R` → `services.msc`) junto a la TUI para verificar
 |------|------------------------|-------------------------------------------------------------------------|
 | 1    | Instalar Scale Local   | Dashboard muestra "Scale Service: Local - [+] EN EJECUCION"             |
 | 2    | Volver, selecc. Ticket | Menú muestra opciones de instalación                                    |
-| 3    | Instalar Ticket Remote | Barra de estado del Dashboard: `scale: [+] Local                        | ticket: [+] Remote` |
+| 3    | Instalar Ticket Remote | Barra de estado del Dashboard: `scale: [+] Local                        |
 | 4    | Verificar Services.msc | Ambos `R2k_BasculaServicio_Local` y `R2k_TicketServicio_Remote` existen |
 
 ### Prueba 4: Operaciones de Servicio (Detener / Iniciar / Reiniciar)
@@ -399,10 +401,10 @@ Abra **Services.msc** (`Win+R` → `services.msc`) junto a la TUI para verificar
 
 ### Prueba 7: Chequeo de Admin (Prueba Negativa)
 
-| Paso | Acción                                         | Esperado                                           |
-|------|------------------------------------------------|----------------------------------------------------|
-| 1    | Doble clic en `R2k_Instalador.exe` (sin admin) | Muestra "[!] Permisos de Administrador Requeridos" |
-| 2    | Presionar Enter                                | La ventana se cierra                               |
+| Paso | Acción                                             | Esperado                                           |
+|------|----------------------------------------------------|----------------------------------------------------|
+| 1    | Doble clic en `R2k_POS_Instalador.exe` (sin admin) | Muestra "[!] Permisos de Administrador Requeridos" |
+| 2    | Presionar Enter                                    | La ventana se cierra                               |
 
 ---
 
@@ -418,6 +420,7 @@ Abra **Services.msc** (`Win+R` → `services.msc`) junto a la TUI para verificar
 | `config.ScaleBaseName undefined`                        | ldflags no se están inyectando    | Revise que `LDFLAGS_INSTALLER` en Taskfile incluya `-X '...ScaleBaseName=...'` |
 | `cannot find module providing package .../scale-daemon` | Ruta hermana incorrecta           | Verifique que exista `../scale-daemon/` relativo a `poster-tuis/`              |
 | La compilación tiene éxito pero el `.exe` pesa ~5MB     | Falló la incrustación             | Verifique que existan 4 archivos en `internal/assets/bin/` antes de compilar   |
+| `Error cargando .env` o faltan variables                | Archivo `.env` ausente            | Asegúrese de haber creado `.env` en el root del proyecto como se indicó        |
 
 ### Errores en Tiempo de Ejecución
 
@@ -462,7 +465,7 @@ Get-ChildItem "$env:ProgramFiles\R2k_*"
 # Esperado: sin resultados
 
 # Sin artefactos de compilación
-Test-Path .\dist\R2k_Instalador.exe       # Esperado: False
-Test-Path .\internal\assets\bin\           # Esperado: False
+Test-Path .\dist\R2k_POS_Instalador.exe       # Esperado: False
+Test-Path .\internal\assets\bin\               # Esperado: False
 
 ```
