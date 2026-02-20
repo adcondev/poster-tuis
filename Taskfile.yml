@@ -10,7 +10,7 @@ version: '3'
 dotenv: [ '.env' ]
 
 # Silencia toda la salida de comandos por defecto, cambia a false para depurar o usa 'task --verbose' para anularlo
-silent: true
+silent: false
 
 vars:
   # ══════════════════════════════════════════════════════════════
@@ -139,6 +139,20 @@ tasks:
     status:
       - test -d "{{.ASSETS_BIN_DIR}}"
 
+  init:dummies:
+    desc: "🛠️ Crea archivos dummy para pruebas (opcional)"
+    internal: true
+    cmds:
+      - echo "Archivo dummy para Scale Local" > "{{.ASSETS_BIN_DIR}}\{{.SCALE_SVC_ID_LOCAL}}.exe"
+      - echo "Archivo dummy para Scale Remote" > "{{.ASSETS_BIN_DIR}}\{{.SCALE_SVC_ID_REMOTE}}.exe"
+      - echo "Archivo dummy para Ticket Local" > "{{.ASSETS_BIN_DIR}}\{{.TICKET_SVC_ID_LOCAL}}.exe"
+      - echo "Archivo dummy para Ticket Remote" > "{{.ASSETS_BIN_DIR}}\{{.TICKET_SVC_ID_REMOTE}}.exe"
+    status:
+      - test -f "{{.ASSETS_BIN_DIR}}\{{.SCALE_SVC_ID_LOCAL}}.exe"
+      - test -f "{{.ASSETS_BIN_DIR}}\{{.SCALE_SVC_ID_REMOTE}}.exe"
+      - test -f "{{.ASSETS_BIN_DIR}}\{{.TICKET_SVC_ID_LOCAL}}.exe"
+      - test -f "{{.ASSETS_BIN_DIR}}\{{.TICKET_SVC_ID_REMOTE}}.exe"
+
   init:dist:
     desc: "🛠️ Crea el directorio dist"
     internal: true
@@ -146,6 +160,14 @@ tasks:
       - powershell -Command "if (!(Test-Path '{{.DIST_DIR}}')) { New-Item -ItemType Directory -Path '{{.DIST_DIR}}' -Force | Out-Null }"
     status:
       - test -d "{{.DIST_DIR}}"
+
+  init:all:
+    desc: "🛠️ Inicializa todos los directorios necesarios para el instalador"
+    cmds:
+      - task: init:assets
+      - task: init:dist
+      - task: init:dummies
+      - echo "✅ Todos los directorios inicializados"
 
   debug:auth:
     desc: "🔍 Depuración: verifica el flujo de hash de la contraseña"
@@ -159,6 +181,24 @@ tasks:
       - echo "Auth token from .env = {{.TICKET_AUTH_TOKEN}}"
       - echo "Base64 hash for ldflags = '{{.TICKET_PASSWORD_HASH}}'"
       - echo "Si la cadena base64 contiene solo caracteres A-Za-z0-9+/=, es segura para ldflags."
+
+  linter:run:
+    desc: "🔍 Ejecuta golangci-lint para el código del instalador"
+    cmds:
+      - task: init:all # Asegura que los directorios necesarios existan antes de linting
+      - golangci-lint run --config=.golangci.yml --timeout=5m ./...
+
+  test:run:
+    desc: "✅ Ejecuta pruebas unitarias para el código del instalador"
+    cmds:
+      - task: init:all # Asegura que los directorios necesarios existan antes de testing
+      - go test -v -coverprofile=coverage.txt -covermode=atomic ./...
+
+  benchmark:run:
+    desc: "⚡ Ejecuta benchmarks para el código del instalador"
+    cmds:
+      - task: init:all # Asegura que los directorios necesarios existan antes de benchmarking
+      - go test -v -bench=. ./...
 
   # ══════════════════════════════════════════════════════════════
   # 📦 COMPILACIONES DE LOS SERVICIOS DEL INSTALADOR (Salida en assets/bin)
