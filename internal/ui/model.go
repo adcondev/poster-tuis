@@ -1,3 +1,4 @@
+// Package ui contains all the user interface components and rendering logic for the TUI application.
 package ui
 
 import (
@@ -225,7 +226,7 @@ func (m Model) refreshStatusCmd() tea.Cmd {
 
 // periodicRefreshCmd sets up periodic status polling
 func periodicRefreshCmd() tea.Cmd {
-	return tea.Every(5*time.Second, func(t time.Time) tea.Msg {
+	return tea.Every(5*time.Second, func(_ time.Time) tea.Msg {
 		// Return an empty statusUpdateMsg to trigger a refresh
 		// The actual check happens in the Update handler
 		return statusUpdateMsg{}
@@ -282,7 +283,7 @@ func (m Model) returnToFamilyMenu() (Model, tea.Cmd) {
 
 // simulateProgress creates a progress animation command
 func simulateProgress() tea.Cmd {
-	return tea.Every(100*time.Millisecond, func(t time.Time) tea.Msg {
+	return tea.Every(100*time.Millisecond, func(_ time.Time) tea.Msg {
 		return progressMsg(0.1)
 	})
 }

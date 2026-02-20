@@ -13,23 +13,24 @@ import (
 var Srvc = ""
 
 func main() {
-	if Srvc == "" {
+	switch Srvc {
+	case "scale":
+		hashPassword("SCALE_HASH_PW")
+	case "ticket":
+		hashPassword("TICKET_HASH_PW")
+	case "":
 		_, _ = fmt.Fprintln(os.Stderr, "error: service name not set (set Srvc variable in code)")
 		os.Exit(1)
-	}
-	if Srvc != "scale" && Srvc != "ticket" {
-		_, _ = fmt.Fprintf(os.Stderr, "error: invalid service name '%s' (must be 'scale' or 'ticket')\n", Srvc)
-		os.Exit(1)
-	}
-	if Srvc == "scale" {
-		hashPassword("SCALE_HASH_PW")
-	} else if Srvc == "ticket" {
-		hashPassword("TICKET_HASH_PW")
+	default:
+		if Srvc != "scale" && Srvc != "ticket" {
+			_, _ = fmt.Fprintf(os.Stderr, "error: invalid service name '%s' (must be 'scale' or 'ticket')\n", Srvc)
+			os.Exit(1)
+		}
 	}
 }
 
-func hashPassword(Env string) {
-	pw := strings.TrimSpace(os.Getenv(Env))
+func hashPassword(env string) {
+	pw := strings.TrimSpace(os.Getenv(env))
 	if pw == "" {
 		// Empty password = no auth. Print empty string for ldflags.
 		fmt.Print("")

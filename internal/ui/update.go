@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -14,6 +15,17 @@ import (
 // ══════════════════════════════════════════════════════════════
 // Main Update Function
 // ══════════════════════════════════════════════════════════════
+
+const (
+	// Esc is used in multiple places for "go back" functionality, so we define it as a constant for consistency
+	Esc = "esc"
+	// Quit is also used in multiple places for exiting the application
+	Quit = "q"
+	// Enter is used for confirming selections across multiple screens
+	Enter = "enter"
+	// NoServiceMsg is a common message when an expected service manager is not found
+	NoServiceMsg = "No hay servicio activo instalado."
+)
 
 // Update handles all incoming messages and delegates to screen-specific handlers
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -124,6 +136,8 @@ func (m Model) handleStatusUpdate(msg statusUpdateMsg) (Model, tea.Cmd) {
 			items := buildFamilyMenuItems(fs)
 			m.list.SetItems(items)
 		}
+	default:
+		log.Printf("[UI] ⚠️ Received status update on unsupported screen %q; no menu refresh performed", m.currentScreen)
 	}
 
 	// Schedule next periodic refresh
@@ -168,7 +182,7 @@ func (m Model) handleDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// ESC/Q on family screen → back to dashboard
-	if msg.String() == "esc" || msg.String() == "q" {
+	if msg.String() == Esc || msg.String() == Quit {
 		return m.goToDashboard()
 	}
 
@@ -210,7 +224,7 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "start":
 			mgr := m.getActiveManager()
 			if mgr == nil {
-				m.statusMessage = "No hay servicio activo instalado."
+				m.statusMessage = NoServiceMsg
 				return m, nil
 			}
 			return m.executeAction("Iniciar Servicio", mgr.Start)
@@ -218,7 +232,7 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "stop":
 			mgr := m.getActiveManager()
 			if mgr == nil {
-				m.statusMessage = "No hay servicio activo instalado."
+				m.statusMessage = NoServiceMsg
 				return m, nil
 			}
 			return m.executeAction("Detener Servicio", mgr.Stop)
@@ -236,7 +250,7 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "restart":
 			mgr := m.getActiveManager()
 			if mgr == nil {
-				m.statusMessage = "No hay servicio activo instalado."
+				m.statusMessage = NoServiceMsg
 				return m, nil
 			}
 			return m.executeAction("Reiniciar Servicio", mgr.Restart)
@@ -256,7 +270,7 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleLogsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// ESC/Q on logs screen → back to family menu
-	if msg.String() == "esc" || msg.String() == "q" {
+	if msg.String() == Esc || msg.String() == Quit {
 		return m.returnToFamilyMenu()
 	}
 
@@ -277,7 +291,7 @@ func (m Model) handleLogsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "open-file":
 			mgr := m.getActiveManager()
 			if mgr == nil {
-				m.statusMessage = "No hay servicio activo instalado; no se pueden abrir los logs."
+				m.statusMessage = NoServiceMsg + "; no se pueden abrir los logs."
 				return m, nil
 			}
 			if err := mgr.OpenLogFile(); err != nil {
@@ -290,7 +304,7 @@ func (m Model) handleLogsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "open-dir":
 			mgr := m.getActiveManager()
 			if mgr == nil {
-				m.statusMessage = "No hay servicio activo instalado; no se puede abrir la carpeta de logs."
+				m.statusMessage = NoServiceMsg + "; no se puede abrir la carpeta de logs."
 				return m, nil
 			}
 			if err := mgr.OpenLogDir(); err != nil {
@@ -311,7 +325,7 @@ func (m Model) handleLogsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleResultKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	if msg.String() == "enter" || msg.String() == "esc" {
+	if msg.String() == Enter || msg.String() == Esc {
 		m.result = ""
 		m.statusMessage = ""
 
@@ -338,7 +352,7 @@ func (m Model) handleConfirmKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.confirmCallback,
 			simulateProgress(),
 		)
-	case "n", "N", "esc":
+	case "n", "N", Esc:
 		m.confirmAction = ""
 		m.confirmCallback = nil
 		return m.returnToFamilyMenu()
