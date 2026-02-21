@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -137,7 +136,7 @@ func (m Model) handleStatusUpdate(msg statusUpdateMsg) (Model, tea.Cmd) {
 			m.list.SetItems(items)
 		}
 	default:
-		log.Printf("[UI] ⚠️ Received status update on unsupported screen %q; no menu refresh performed", m.currentScreen)
+		// For other screens, we don't need to rebuild the menu on status update
 	}
 
 	// Schedule next periodic refresh

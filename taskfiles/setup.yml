@@ -1,0 +1,53 @@
+version: '3'
+
+tasks:
+  init:assets:
+    desc: "🛠️ Crea el directorio internal/assets/bin"
+    internal: true
+    cmds:
+      - mkdir -p "{{.ASSETS_BIN_DIR}}"
+    status:
+      - test -d "{{.ASSETS_BIN_DIR}}"
+
+  init:dist:
+    desc: "🛠️ Crea el directorio dist"
+    internal: true
+    cmds:
+      - mkdir -p "{{.DIST_DIR}}"
+    status:
+      - test -d "{{.DIST_DIR}}"
+
+  init:dummies:
+    desc: "🛠️ Crea archivos dummy para pruebas (opcional)"
+    internal: true
+    cmds:
+      - for:
+          - "{{.SCALE_SVC_ID_LOCAL}}"
+          - "{{.SCALE_SVC_ID_REMOTE}}"
+          - "{{.TICKET_SVC_ID_LOCAL}}"
+          - "{{.TICKET_SVC_ID_REMOTE}}"
+        cmd: echo "Archivo dummy" > "{{.ASSETS_BIN_DIR}}/{{.ITEM}}.exe"
+
+  init:all:
+    desc: "🛠️ Inicializa todos los directorios necesarios para el instalador"
+    cmds:
+      - task: init:assets
+      - task: init:dist
+      - task: init:dummies
+      - echo "✅ Todos los directorios inicializados"
+
+  clean:installer:
+    desc: "🧹 Limpia los artefactos de compilación del instalador"
+    internal: true
+    cmds:
+      - rm -rf "{{.ASSETS_BIN_DIR}}" "{{.DIST_DIR}}"
+
+  clean:all:
+    desc: "🧹 Limpia todos los directorios bin y tmp del proyecto"
+    cmds:
+      - task: clean:installer
+      - cmd: powershell -Command "Remove-Item -Path '../scale-daemon/bin', '../scale-daemon/tmp', '../ticket-daemon/bin' -Recurse -Force -ErrorAction SilentlyContinue"
+        platforms: [ windows ]
+      - cmd: rm -rf ../scale-daemon/bin ../ticket-daemon/bin
+        platforms: [ linux, darwin ]
+      - echo "✅ Todos los proyectos limpiados"

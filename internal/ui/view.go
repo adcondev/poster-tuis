@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -198,9 +197,8 @@ func (m Model) renderHealthSummary() string {
 				icon = "+"
 			case service.StatusStopped:
 				icon = "."
-				// default: icon stays "?" — safe for StatusUnknown
 			default:
-				log.Printf("[WARN] Unrecognized status for %s: %s", family, status.String())
+				// For any unexpected status, we show "?" to indicate uncertainty.
 			}
 
 			parts = append(parts, fmt.Sprintf("%s: [%s] %s", family, icon, installed))
