@@ -16,7 +16,7 @@ dotenv: [ '.env' ]
 
 # 'silent: true' evita que Task imprima en consola cada comando exacto que ejecuta,
 # manteniendo la salida limpia para el desarrollador.
-silent: false
+silent: true
 
 # Aquí importamos los otros archivos de tareas para mantener todo organizado
 includes:

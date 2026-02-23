@@ -55,5 +55,5 @@ tasks:
   rebuild:
     desc: "🔄 Limpia y recompila el instalador desde cero"
     cmds:
-      - task: :setup:clean:installer
+      - task: :setup:clean:all
       - task: installer
