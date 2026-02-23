@@ -296,7 +296,7 @@ func (m *Manager) Install() error {
 			return fmt.Errorf("el servicio ya existe en el registro de Windows (use Desinstalar primero)")
 		}
 		// CLAVE: Mostramos el error de Go (%v) para no volar a ciegas
-		return fmt.Errorf("fallo del sistema (%v) - Salida sc: '%s'", err, outputStr)
+		return fmt.Errorf("fallo del sistema (%w) - Salida sc: '%s'", err, outputStr)
 	}
 
 	// 4. Configure failure recovery (restart on failure)

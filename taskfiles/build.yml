@@ -1,17 +1,31 @@
+# ==============================================================================
+# 📝 ARCHIVO DE COMPILACIÓN (BUILD)
+# ==============================================================================
+# Este archivo contiene las instrucciones para transformar nuestro código fuente
+# en los ejecutables (.exe) finales.
+# ==============================================================================
 version: '3'
 
 tasks:
+  # Tarea interna: plantilla reutilizable para compilar un demonio individual.
+  # Se marca como 'internal: true' para ocultarla de la lista de tareas ('task list').
   service:
     internal: true
-    dir: "{{.SRC_DIR}}"
-    deps: [ ":setup:init:assets" ] # <-- Añadido ':' al inicio
+    dir: "{{.SRC_DIR}}" # Se mueve al repositorio hermano correspondiente
+    deps: [ ":setup:init:assets" ] # Asegura que la carpeta de destino exista antes de compilar
+    env:
+      GOOS: windows      # El sistema operativo destino será Windows
+      GOARCH: amd64      # Arquitectura de 64 bits
     cmds:
+      # Compila el servicio e inyecta las variables de entorno para saber si es local/remoto
       - go build -ldflags "{{.BASE_LDFLAGS}} -X {{.CONFIG_PATH}}.BuildEnvironment={{.SVC_ENV}} -X {{.CONFIG_PATH}}.ServiceName={{.SVC_ID}}" -o "{{.ASSETS_BIN_DIR}}/{{.SVC_ID}}.exe" {{.CMD_PATH}}
       - echo "✅ Compilado {{.SVC_ID}}.exe para el instalador"
 
+  # Esta es la tarea que llama el desarrollador para compilar los 4 demonios.
   services:
     desc: "📦 Compila TODOS los binarios de servicios para integrarlos (4 en total)"
     cmds:
+      # Llama a la tarea "service" 4 veces, pasándole las variables necesarias
       - task: service
         vars: { SRC_DIR: "{{.SCALE_SRC}}", BASE_LDFLAGS: "{{.LDFLAGS_SCALE_BASE}}", CONFIG_PATH: "{{.SCALE_CONFIG}}", SVC_ENV: "local", SVC_ID: "{{.SCALE_SVC_ID_LOCAL}}", CMD_PATH: "./cmd/BasculaServicio" }
       - task: service
@@ -20,13 +34,15 @@ tasks:
         vars: { SRC_DIR: "{{.TICKET_SRC}}", BASE_LDFLAGS: "{{.LDFLAGS_TICKET_BASE}}", CONFIG_PATH: "{{.TICKET_CONFIG}}", SVC_ENV: "local", SVC_ID: "{{.TICKET_SVC_ID_LOCAL}}", CMD_PATH: "./cmd/TicketServicio" }
       - task: service
         vars: { SRC_DIR: "{{.TICKET_SRC}}", BASE_LDFLAGS: "{{.LDFLAGS_TICKET_BASE}}", CONFIG_PATH: "{{.TICKET_CONFIG}}", SVC_ENV: "remote", SVC_ID: "{{.TICKET_SVC_ID_REMOTE}}", CMD_PATH: "./cmd/TicketServicio" }
-      - echo "\n══════════════════════════════════════════════════════════════"
+      - echo "══════════════════════════════════════════════════════════════"
       - echo "  ✅ Todos los binarios de servicios están listos"
       - echo "══════════════════════════════════════════════════════════════"
 
+  # Compila el instalador gráfico en la terminal (TUI)
   installer:
     desc: "🚀 Compila el Instalador TUI con los servicios integrados"
-    deps: [ services, ":setup:init:dist" ] # <-- Añadido ':' al inicio
+    # 'deps' asegura que PRIMERO se compilen los servicios y se cree la carpeta 'dist'
+    deps: [ services, ":setup:init:dist" ]
     cmds:
       - go build -ldflags "{{.LDFLAGS_INSTALLER}}" -o "{{.DIST_DIR}}/{{.INSTALLER_SVC_NAME}}" ./cmd/R2kInstaller
       - echo ""
@@ -35,8 +51,9 @@ tasks:
       - echo "  📁 Salida:{{.DIST_DIR}}"
       - echo "══════════════════════════════════════════════════════════════"
 
+  # Flujo de trabajo ideal para el desarrollador: limpia todo y compila desde cero
   rebuild:
     desc: "🔄 Limpia y recompila el instalador desde cero"
     cmds:
-      - task: :setup:clean:installer # <-- Añadido ':' al inicio
+      - task: :setup:clean:installer
       - task: installer

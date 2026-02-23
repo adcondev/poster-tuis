@@ -1,9 +1,24 @@
-# poster-tuis/Taskfile.yml
+# ==============================================================================
+# 📝 QUÉ ES ESTE ARCHIVO Y CÓMO USARLO
+# ==============================================================================
+# Este archivo es la configuración principal de "Task", un ejecutor de tareas
+# moderno (similar a Makefile, pero usa YAML).
+#
+# Descárgalo e instálalo desde: https://taskfile.dev/installation/
+#
+# Desde tu terminal (en esta misma carpeta), ejecuta: `task <nombre_de_la_tarea>`
+# Para ver una lista de todo lo que puedes ejecutar, escribe: `task list`
+# ==============================================================================
 version: '3'
 
+# Carga automáticamente las variables del archivo .env
 dotenv: [ '.env' ]
-silent: true
 
+# 'silent: true' evita que Task imprima en consola cada comando exacto que ejecuta,
+# manteniendo la salida limpia para el desarrollador.
+silent: false
+
+# Aquí importamos los otros archivos de tareas para mantener todo organizado
 includes:
   setup:
     taskfile: ./taskfiles/setup.yml
@@ -16,15 +31,30 @@ includes:
     dir: .
 
 vars:
+  # Variables de tiempo para estampar en los binarios compilados
   DATE: '{{now | date "2006-01-02"}}'
   TIME: '{{now | date "15:04:05"}}'
+
+  # Nombre del ejecutable final del instalador
   INSTALLER_SVC_NAME: "R2k_POS_Instalador.exe"
 
+  # ============================================================================
+  # 🔐 SEGURIDAD: HASHING DINÁMICO
+  # Estos comandos ejecutan un script de Go en tiempo real para convertir
+  # las contraseñas planas del archivo .env en hashes seguros (bcrypt + base64).
+  # Así evitamos guardar contraseñas planas en el código fuente.
+  # ============================================================================
   SCALE_PASSWORD_HASH:
-    sh: SCALE_HASH_PW='{{.SCALE_DASHBOARD_PASSWORD}}' go run -ldflags '-s -w -X main.Srvc=scale -H=windowsgui' ./cmd/hashpw/main.go
+    sh: SCALE_HASH_PW='{{.SCALE_DASHBOARD_PASSWORD}}' go run -ldflags '-s -w -X main.Srvc=scale' ./cmd/hashpw/main.go
   TICKET_PASSWORD_HASH:
-    sh: TICKET_HASH_PW='{{.TICKET_DASHBOARD_PASSWORD}}' go run -ldflags '-s -w -X main.Srvc=ticket -H=windowsgui' ./cmd/hashpw/main.go
+    sh: TICKET_HASH_PW='{{.TICKET_DASHBOARD_PASSWORD}}' go run -ldflags '-s -w -X main.Srvc=ticket' ./cmd/hashpw/main.go
 
+  # ============================================================================
+  # 💉 INYECCIÓN DE VARIABLES (LDFLAGS) - SCALE DAEMON
+  # Aquí preparamos la inyección de variables en el código Go del servicio Scale.
+  # Al compilar, Go reemplazará las variables de 'scale-daemon/internal/config' con estos valores.
+  # '-H=windowsgui' oculta la consola negra de Windows cuando el servicio se ejecuta.
+  # ============================================================================
   SCALE_CONFIG: "github.com/adcondev/scale-daemon/internal/config"
   LDFLAGS_SCALE_BASE: >-
     -s -w
@@ -35,6 +65,10 @@ vars:
     -X '{{.SCALE_CONFIG}}.ServerPort={{.SCALE_PORT}}'
     -H=windowsgui
 
+  # ============================================================================
+  # 💉 INYECCIÓN DE VARIABLES (LDFLAGS) - TICKET DAEMON
+  # Mismo proceso, pero para el servicio de Tickets.
+  # ============================================================================
   TICKET_CONFIG: "github.com/adcondev/ticket-daemon/internal/config"
   LDFLAGS_TICKET_BASE: >-
     -s -w
@@ -45,6 +79,10 @@ vars:
     -X '{{.TICKET_CONFIG}}.ServerPort={{.TICKET_PORT}}'
     -H=windowsgui
 
+  # ============================================================================
+  # 🏷️ IDENTIFICADORES Y NOMBRES DE REGISTRO EN WINDOWS
+  # Estos nombres se registrarán directamente en Windows (services.msc)
+  # ============================================================================
   SCALE_SVC_ID_LOCAL: "R2k_BasculaServicio_Local"
   SCALE_SVC_ID_REMOTE: "R2k_BasculaServicio_Remote"
   SCALE_CMD_ID_LOCAL: "R2k_BasculaCmd_Local"
@@ -61,11 +99,14 @@ vars:
   TICKET_SVC_DISPLAY_REMOTE: "Servicio de Impresión de Tickets (Remoto)"
   TICKET_SVC_DESC: "Servicio de impresión de tickets POS via WebSocket"
 
+  # Rutas clave de carpetas donde trabajaremos
   ASSETS_BIN_DIR: '{{.ROOT_DIR}}/internal/assets/bin'
   DIST_DIR: '{{.ROOT_DIR}}/dist'
+  # Rutas a los repositorios hermanos (deben estar en la misma carpeta padre)
   SCALE_SRC: "../scale-daemon"
   TICKET_SRC: "../ticket-daemon"
 
+  # Inyección de variables específicas para el INSTALADOR (TUI)
   TUIS_CONFIG: "github.com/adcondev/poster-tuis/internal/config"
   LDFLAGS_INSTALLER: >-
     -s -w
@@ -80,13 +121,14 @@ vars:
     -X '{{.TUIS_CONFIG}}.TicketDisplayLocal={{.TICKET_SVC_DISPLAY_LOCAL}}'
     -X '{{.TUIS_CONFIG}}.TicketDisplayRemote={{.TICKET_SVC_DISPLAY_REMOTE}}'
 
+# Variables de entorno aplicadas a TODOS los comandos por defecto.
+# ESTO ES CRÍTICO: Fuerza la compilación para Windows sin importar en qué SO estés trabajando.
 env:
-  CGO_ENABLED: '0'
-  GOOS: windows
-  GOARCH: amd64
+  CGO_ENABLED: '0'   # Desactiva dependencias en C para asegurar un binario 100% estático
 
 tasks:
+  # Tarea por defecto al ejecutar `task list`. Ayuda a descubrir comandos.
   list:
-    desc: "📋 Lista todas las tareas con sus descripciones"
+    desc: "📋 Lista todas las tareas disponibles y su propósito"
     cmds:
       - task --list-all

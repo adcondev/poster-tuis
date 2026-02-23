@@ -87,7 +87,7 @@ jobs:
 
       - name: Create dummy dependencies
         run: |
-          task init:all
+          task setup:init:all
 
       - name: Run tests with race detection
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
@@ -121,7 +121,7 @@ jobs:
 
       - name: Create dummy dependencies
         run: |
-          task init:all
+          task setup:init:all
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
@@ -159,7 +159,7 @@ jobs:
 
       - name: Create dummy dependencies
         run: |
-          task init:all
+          task setup:init:all
 
       - name: Run benchmarks (base)
         continue-on-error: true
@@ -244,6 +244,8 @@ jobs:
     steps:
       - name: Checkout poster-tuis
         uses: actions/checkout@v6
+        with:
+          path: poster-tuis
 
       - name: Checkout Scale Daemon
         uses: actions/checkout@v6
@@ -277,23 +279,28 @@ jobs:
 
       - name: Generate .env file
         run: |
-          echo "SCALE_DASHBOARD_PASSWORD=${{ secrets.SCALE_DASHBOARD_PASSWORD || 'scale_ci' }}" >> .env
-          echo "SCALE_AUTH_TOKEN=${{ secrets.SCALE_AUTH_TOKEN || 'token_ci' }}" >> .env
-          echo "SCALE_PORT=${{ secrets.SCALE_PORT || '8765' }}" >> .env
-          echo "TICKET_DASHBOARD_PASSWORD=${{ secrets.TICKET_DASHBOARD_PASSWORD || 'ticket_ci' }}" >> .env
-          echo "TICKET_AUTH_TOKEN=${{ secrets.TICKET_AUTH_TOKEN || 'token_ci' }}" >> .env
-          echo "TICKET_PORT=${{ secrets.TICKET_PORT || '8766' }}" >> .env
+          # Generar el .env dentro de la carpeta del proyecto
+          echo "SCALE_DASHBOARD_PASSWORD=${{ secrets.SCALE_DASHBOARD_PASSWORD || 'scale_ci' }}" >> poster-tuis/.env
+          echo "SCALE_AUTH_TOKEN=${{ secrets.SCALE_AUTH_TOKEN || 'token_ci' }}" >> poster-tuis/.env
+          echo "SCALE_PORT=${{ secrets.SCALE_PORT || '8765' }}" >> poster-tuis/.env
+          echo "TICKET_DASHBOARD_PASSWORD=${{ secrets.TICKET_DASHBOARD_PASSWORD || 'ticket_ci' }}" >> poster-tuis/.env
+          echo "TICKET_AUTH_TOKEN=${{ secrets.TICKET_AUTH_TOKEN || 'token_ci' }}" >> poster-tuis/.env
+          echo "TICKET_PORT=${{ secrets.TICKET_PORT || '8766' }}" >> poster-tuis/.env
         shell: bash
         # Uses required env vars for successful injection during the build
       - name: Build via Taskfile
         run: |
-          task installer:build SCALE_SRC="scale-daemon" TICKET_SRC="ticket-daemon"
-
+          cd poster-tuis
+          # Ahora las rutas relativas ../ funcionarán porque estamos dentro de poster-tuis
+          task build:installer SCALE_SRC="../scale-daemon" TICKET_SRC="../ticket-daemon"
+        shell: bash
       - name: Publish Artifact Summary
         run: |
           echo "## 📦 Build Artifact" >> $env:GITHUB_STEP_SUMMARY
           echo "| File | Size |" >> $env:GITHUB_STEP_SUMMARY
           echo "|------|------|" >> $env:GITHUB_STEP_SUMMARY
-          $file = Get-Item "dist\R2k_POS_Instalador.exe"
+          # Apuntamos a la carpeta correcta donde Task dejó el binario
+          $file = Get-Item "poster-tuis\dist\R2k_POS_Instalador.exe" 
           $size = [math]::Round($file.Length / 1MB, 2)
           echo "| $($file.Name) | $($size) MB |" >> $env:GITHUB_STEP_SUMMARY
+        if: success() # Solo se ejecuta si la compilación fue exitosa
