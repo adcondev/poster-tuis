@@ -1,0 +1,41 @@
+# ==============================================================================
+# 📝 ARCHIVO DE INTEGRACIÓN CONTINUA / PRUEBAS (CI)
+# ==============================================================================
+# Aquí residen las tareas no críticas para verificar la calidad del código, correr pruebas
+# y depurar configuraciones antes de hacer un commit o PR.
+# ==============================================================================
+version: '3'
+
+tasks:
+  debug:auth:
+    desc: "🔍 Depuración: verifica el flujo de hash de la contraseña"
+    cmds:
+      # Útil para verificar si el script de hash está tomando correctamente las vars del .env
+      - echo "Password from .env = {{.SCALE_DASHBOARD_PASSWORD}}"
+      - echo "Auth token from .env = {{.SCALE_AUTH_TOKEN}}"
+      - echo "Base64 hash for ldflags = '{{.SCALE_PASSWORD_HASH}}'"
+      - echo "Si la cadena base64 contiene solo caracteres A-Za-z0-9+/=, es segura para ldflags."
+      - echo "=========================================================="
+      - echo "Password from .env = {{.TICKET_DASHBOARD_PASSWORD}}"
+      - echo "Auth token from .env = {{.TICKET_AUTH_TOKEN}}"
+      - echo "Base64 hash for ldflags = '{{.TICKET_PASSWORD_HASH}}'"
+      - echo "Si la cadena base64 contiene solo caracteres A-Za-z0-9+/=, es segura para ldflags."
+
+  linter:
+    desc: "🔍 Ejecuta golangci-lint para el código del instalador"
+    cmds:
+      # Siempre inicializa los dummies primero, sino el linter fallará por el go:embed
+      - task: :setup:init:all
+      - golangci-lint run --config=.golangci.yml --timeout=5m ./...
+
+  test:
+    desc: "✅ Ejecuta pruebas unitarias para el código del instalador"
+    cmds:
+      - task: :setup:init:all
+      - go test -v -coverprofile=coverage.txt -covermode=atomic ./...
+
+  benchmark:
+    desc: "⚡ Ejecuta benchmarks para el código del instalador"
+    cmds:
+      - task: :setup:init:all
+      - go test -v -bench=. ./...

@@ -1,3 +1,4 @@
+// Package assets provides embedded service binaries for the Scale and Ticket services.
 package assets
 
 import _ "embed"

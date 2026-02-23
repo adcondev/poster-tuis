@@ -126,6 +126,7 @@ func (m Model) viewProcessing() string {
 
 	if m.progressPercent > 0 {
 		b.WriteString(m.progress.ViewAs(m.progressPercent))
+		//nolint:staticcheck // false positive: string builder is needed for the progress view
 		b.WriteString(fmt.Sprintf("\n%.0f%% completado", m.progressPercent*100))
 	}
 
@@ -142,17 +143,9 @@ func (m Model) viewResult() string {
 
 	var boxStyle lipgloss.Style
 	if m.success {
-		boxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(successColor).
-			Padding(1, 2).
-			Width(m.width - 10)
+		boxStyle = successStyle
 	} else {
-		boxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(errorColor).
-			Padding(1, 2).
-			Width(m.width - 10)
+		boxStyle = errorStyle
 	}
 
 	b.WriteString(boxStyle.Render(m.result))
@@ -204,7 +197,8 @@ func (m Model) renderHealthSummary() string {
 				icon = "+"
 			case service.StatusStopped:
 				icon = "."
-				// default: icon stays "?" — safe for StatusUnknown
+			default:
+				// For any unexpected status, we show "?" to indicate uncertainty.
 			}
 
 			parts = append(parts, fmt.Sprintf("%s: [%s] %s", family, icon, installed))

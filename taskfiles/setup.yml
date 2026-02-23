@@ -1,0 +1,52 @@
+# ==============================================================================
+# 📝 ARCHIVO DE PREPARACIÓN Y LIMPIEZA (SETUP)
+# ==============================================================================
+# Maneja la creación de carpetas necesarias y la eliminación de binarios viejos.
+# ==============================================================================
+version: '3'
+
+tasks:
+  init:assets:
+    desc: "🛠️ Crea el directorio internal/assets/bin"
+    internal: true
+    cmds:
+      - mkdir -p "{{.ASSETS_BIN_DIR}}"
+    # 'status' evita que se ejecute si la carpeta ya existe, ahorrando tiempo
+    status:
+      - test -d "{{.ASSETS_BIN_DIR}}"
+
+  init:dist:
+    desc: "🛠️ Crea el directorio dist"
+    internal: true
+    cmds:
+      - mkdir -p "{{.DIST_DIR}}"
+    status:
+      - test -d "{{.DIST_DIR}}"
+
+  # TAREA CRÍTICA:
+  # El paquete 'assets' usa la directiva //go:embed para integrar los binarios
+  # en el código. Si los binarios no existen, el linter y Go fallarán antes de compilar.
+  # Esta tarea crea archivos de texto falsos (.exe) para que Go no se queje
+  # mientras desarrollamos o antes de realizar la compilación real.
+  init:dummies:
+    desc: "🛠️ Crea archivos dummy para evitar errores de //go:embed"
+    internal: true
+    cmds:
+      # Definir cada uno por separado garantiza que las variables se expandan correctamente
+      - echo "dummy" > "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_LOCAL}}.exe"
+      - echo "dummy" > "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_REMOTE}}.exe"
+      - echo "dummy" > "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_LOCAL}}.exe"
+      - echo "dummy" > "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_REMOTE}}.exe"
+
+  init:all:
+    desc: "🛠️ Inicializa todos los directorios necesarios para el instalador"
+    cmds:
+      - task: init:assets
+      - task: init:dist
+      - task: init:dummies
+      - echo "✅ Todos los directorios inicializados"
+
+  clean:all:
+    desc: "🧹 Limpia los artefactos de compilación del instalador"
+    cmds:
+      - rm -rf "{{.ASSETS_BIN_DIR}}" "{{.DIST_DIR}}"

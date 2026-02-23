@@ -1,7 +1,6 @@
 package service
 
 import (
-	"os/exec"
 	"strings"
 	"time"
 )
@@ -10,15 +9,28 @@ import (
 // Status Types
 // ══════════════════════════════════════════════════════════════
 
+const (
+	// Local is the identifier for the "Local" variant of a service family
+	Local = "Local"
+	// Remoto is the identifier for the "Remoto" variant of a service family
+	Remoto = "Remoto"
+)
+
 // Status represents the current state of a Windows service
 type Status int
 
 const (
+	// StatusNotInstalled indicates the service is not present in the system
 	StatusNotInstalled Status = iota
+	// StatusStopped indicates the service is installed but not running
 	StatusStopped
+	// StatusRunning indicates the service is currently running
 	StatusRunning
+	// StatusStopPending indicates the service is in the process of stopping
 	StatusStopPending
+	// StatusStartPending indicates the service is in the process of starting
 	StatusStartPending
+	// StatusUnknown indicates an unrecognized or error state when querying the service
 	StatusUnknown
 )
 
@@ -61,13 +73,13 @@ func (fs FamilyStatus) GetInstalledVariant() string {
 
 	if localInstalled && remoteInstalled {
 		// Both installed — shouldn't happen. Return "Local" but this is a conflict.
-		return "Local" // or return "CONFLICT" for special handling
+		return "Conflict" // or return "CONFLICT" for special handling
 	}
 	if localInstalled {
-		return "Local"
+		return Local
 	}
 	if remoteInstalled {
-		return "Remoto"
+		return Remoto
 	}
 	return ""
 }
@@ -91,22 +103,28 @@ func (fs FamilyStatus) GetActiveStatus() Status {
 // CheckStatus queries the Windows service control manager for the
 // current state of this manager's service variant.
 func (m *Manager) CheckStatus() Status {
-	cmd := exec.Command("sc", "query", m.variant.RegistryName)
-	output, err := cmd.CombinedOutput()
+	output, err := secureScRun("query", m.variant.RegistryName)
+	outStr := string(output)
 
 	if err != nil {
-		return StatusNotInstalled
+		// If sc indicates the service doesn't exist, treat as not installed.
+		if strings.Contains(outStr, "1060") ||
+			strings.Contains(strings.ToLower(outStr), "does not exist") ||
+			strings.Contains(strings.ToLower(outStr), "not found") {
+			return StatusNotInstalled
+		}
+		// Unexpected error from sc; return unknown so callers can handle/log if needed.
+		return StatusUnknown
 	}
 
-	outputStr := string(output)
 	switch {
-	case strings.Contains(outputStr, "RUNNING"):
+	case strings.Contains(outStr, "RUNNING"):
 		return StatusRunning
-	case strings.Contains(outputStr, "STOPPED"):
+	case strings.Contains(outStr, "STOPPED"):
 		return StatusStopped
-	case strings.Contains(outputStr, "STOP_PENDING"):
+	case strings.Contains(outStr, "STOP_PENDING"):
 		return StatusStopPending
-	case strings.Contains(outputStr, "START_PENDING"):
+	case strings.Contains(outStr, "START_PENDING"):
 		return StatusStartPending
 	default:
 		return StatusUnknown
@@ -127,9 +145,9 @@ func CheckFamilyStatus(variants []Variant) FamilyStatus {
 		status := mgr.CheckStatus()
 
 		switch v.Variant {
-		case "Local":
+		case Local:
 			fs.LocalStatus = status
-		case "Remoto":
+		case Remoto:
 			fs.RemoteStatus = status
 		}
 	}

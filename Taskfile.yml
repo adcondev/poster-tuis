@@ -1,39 +1,88 @@
-# daemon-tuis/Taskfile.yml
-# Unified Build System for R2k Daemon Services
-# Dev: github.com/adcondev @ Red2000
-# https://taskfile.dev
-
+# ==============================================================================
+# 📝 QUÉ ES ESTE ARCHIVO Y CÓMO USARLO
+# ==============================================================================
+# Este archivo es la configuración principal de "Task", un ejecutor de tareas
+# moderno (similar a Makefile, pero usa YAML).
+#
+# Descárgalo e instálalo desde: https://taskfile.dev/installation/
+#
+# Desde tu terminal (en esta misma carpeta), ejecuta: `task <nombre_de_la_tarea>`
+# Para ver una lista de todo lo que puedes ejecutar, escribe: `task list`
+# ==============================================================================
 version: '3'
 
-silent: true
+# Carga automáticamente las variables del archivo .env
+dotenv: [ '.env' ]
+
+# 'silent: true' evita que Task imprima en consola cada comando exacto que ejecuta,
+# manteniendo la salida limpia para el desarrollador.
+silent: false
+
+# Aquí importamos los otros archivos de tareas para mantener todo organizado
+includes:
+  setup:
+    taskfile: ./taskfiles/setup.yml
+    dir: .
+  build:
+    taskfile: ./taskfiles/build.yml
+    dir: .
+  ci:
+    taskfile: ./taskfiles/ci.yml
+    dir: .
 
 vars:
-  # ══════════════════════════════════════════════════════════════
-  # 📝 GLOBAL CONFIGURATION
-  # ══════════════════════════════════════════════════════════════
-  # Date/Time for ldflags (Windows format)
-  DATE:
-    sh: powershell -Command "Get-Date -Format 'yyyy-MM-dd'"
-  TIME:
-    sh: powershell -Command "Get-Date -Format 'HH:mm:ss'"
+  # Variables de tiempo para estampar en los binarios compilados
+  DATE: '{{now | date "2006-01-02"}}'
+  TIME: '{{now | date "15:04:05"}}'
 
-  INSTALLER_SVC_NAME: "R2k_Installer.exe"
+  # Nombre del ejecutable final del instalador
+  INSTALLER_SVC_NAME: "R2k_POS_Instalador.exe"
 
-  # ══════════════════════════════════════════════════════════════
-  # 🔧 LDFLAGS CONFIGURATION
-  # ══════════════════════════════════════════════════════════════
-  # Scale uses internal/config package variables (see SCALE_MODULE)
-  SCALE_MODULE: "github.com/adcondev/scale-daemon/internal/config"
-  LDFLAGS_SCALE_BASE: "-s -w -X {{.SCALE_MODULE}}.BuildDate={{.DATE}} -X {{.SCALE_MODULE}}.BuildTime={{.TIME}}"
+  # ============================================================================
+  # 🔐 SEGURIDAD: HASHING DINÁMICO
+  # Estos comandos ejecutan un script de Go en tiempo real para convertir
+  # las contraseñas planas del archivo .env en hashes seguros (bcrypt + base64).
+  # Así evitamos guardar contraseñas planas en el código fuente.
+  # ============================================================================
+  SCALE_PASSWORD_HASH:
+    sh: SCALE_HASH_PW='{{.SCALE_DASHBOARD_PASSWORD}}' go run -ldflags '-s -w -X main.Srvc=scale' ./cmd/hashpw/main.go
+  TICKET_PASSWORD_HASH:
+    sh: TICKET_HASH_PW='{{.TICKET_DASHBOARD_PASSWORD}}' go run -ldflags '-s -w -X main.Srvc=ticket' ./cmd/hashpw/main.go
 
-  # Ticket uses internal/daemon package path
-  TICKET_MODULE: "github.com/adcondev/ticket-daemon/internal/config"
-  LDFLAGS_TICKET_BASE: "-s -w -X {{.TICKET_MODULE}}.BuildDate={{.DATE}} -X {{.TICKET_MODULE}}.BuildTime={{.TIME}}"
+  # ============================================================================
+  # 💉 INYECCIÓN DE VARIABLES (LDFLAGS) - SCALE DAEMON
+  # Aquí preparamos la inyección de variables en el código Go del servicio Scale.
+  # Al compilar, Go reemplazará las variables de 'scale-daemon/internal/config' con estos valores.
+  # '-H=windowsgui' oculta la consola negra de Windows cuando el servicio se ejecuta.
+  # ============================================================================
+  SCALE_CONFIG: "github.com/adcondev/scale-daemon/internal/config"
+  LDFLAGS_SCALE_BASE: >-
+    -s -w
+    -X '{{.SCALE_CONFIG}}.BuildDate={{.DATE}}'
+    -X '{{.SCALE_CONFIG}}.BuildTime={{.TIME}}'
+    -X '{{.SCALE_CONFIG}}.PasswordHashB64={{.SCALE_PASSWORD_HASH}}'
+    -X '{{.SCALE_CONFIG}}.AuthToken={{.SCALE_AUTH_TOKEN}}'
+    -X '{{.SCALE_CONFIG}}.ServerPort={{.SCALE_PORT}}'
+    -H=windowsgui
 
-  # ══════════════════════════════════════════════════════════════
-  # 🏷️ NAMING CONVENTION: R2k_<<Daemon>><<Type>>_<<Env>>.exe
-  # ══════════════════════════════════════════════════════════════
-  # Scale
+  # ============================================================================
+  # 💉 INYECCIÓN DE VARIABLES (LDFLAGS) - TICKET DAEMON
+  # Mismo proceso, pero para el servicio de Tickets.
+  # ============================================================================
+  TICKET_CONFIG: "github.com/adcondev/ticket-daemon/internal/config"
+  LDFLAGS_TICKET_BASE: >-
+    -s -w
+    -X '{{.TICKET_CONFIG}}.BuildDate={{.DATE}}'
+    -X '{{.TICKET_CONFIG}}.BuildTime={{.TIME}}'
+    -X '{{.TICKET_CONFIG}}.PasswordHashB64={{.TICKET_PASSWORD_HASH}}'
+    -X '{{.TICKET_CONFIG}}.AuthToken={{.TICKET_AUTH_TOKEN}}'
+    -X '{{.TICKET_CONFIG}}.ServerPort={{.TICKET_PORT}}'
+    -H=windowsgui
+
+  # ============================================================================
+  # 🏷️ IDENTIFICADORES Y NOMBRES DE REGISTRO EN WINDOWS
+  # Estos nombres se registrarán directamente en Windows (services.msc)
+  # ============================================================================
   SCALE_SVC_ID_LOCAL: "R2k_BasculaServicio_Local"
   SCALE_SVC_ID_REMOTE: "R2k_BasculaServicio_Remote"
   SCALE_CMD_ID_LOCAL: "R2k_BasculaCmd_Local"
@@ -42,7 +91,6 @@ vars:
   SCALE_SVC_DISPLAY_REMOTE: "Servicio de Báscula (Remoto)"
   SCALE_SVC_DESC_REMOTE: "Servicio de comunicación con bascula via WebSocket"
 
-  # Ticket
   TICKET_SVC_ID_LOCAL: "R2k_TicketServicio_Local"
   TICKET_SVC_ID_REMOTE: "R2k_TicketServicio_Remote"
   TICKET_CMD_ID_LOCAL: "R2k_TicketCmd_Local"
@@ -51,152 +99,36 @@ vars:
   TICKET_SVC_DISPLAY_REMOTE: "Servicio de Impresión de Tickets (Remoto)"
   TICKET_SVC_DESC: "Servicio de impresión de tickets POS via WebSocket"
 
-  # ══════════════════════════════════════════════════════════════
-  # 🎯 INSTALLER CONFIGURATION
-  # ══════════════════════════════════════════════════════════════
-
-  # Installer paths
-  ASSETS_BIN_DIR:
-    sh: powershell -Command "(Get-Location).Path + '\internal\assets\bin'"
-  DIST_DIR:
-    sh: powershell -Command "(Get-Location).Path + '\dist'"
-
-  # Source repositories
+  # Rutas clave de carpetas donde trabajaremos
+  ASSETS_BIN_DIR: '{{.ROOT_DIR}}/internal/assets/bin'
+  DIST_DIR: '{{.ROOT_DIR}}/dist'
+  # Rutas a los repositorios hermanos (deben estar en la misma carpeta padre)
   SCALE_SRC: "../scale-daemon"
   TICKET_SRC: "../ticket-daemon"
 
-  # Installer ldflags
-  CONFIG_PKG: "github.com/adcondev/poster-tuis/internal/config"
+  # Inyección de variables específicas para el INSTALADOR (TUI)
+  TUIS_CONFIG: "github.com/adcondev/poster-tuis/internal/config"
   LDFLAGS_INSTALLER: >-
     -s -w
-    -X '{{.CONFIG_PKG}}.BuildDate={{.DATE}}'
-    -X '{{.CONFIG_PKG}}.BuildTime={{.TIME}}'
-    -X '{{.CONFIG_PKG}}.ScaleIDLocal={{.SCALE_SVC_ID_LOCAL}}'
-    -X '{{.CONFIG_PKG}}.ScaleIDRemote={{.SCALE_SVC_ID_REMOTE}}'
-    -X '{{.CONFIG_PKG}}.ScaleDisplayLocal={{.SCALE_SVC_DISPLAY_LOCAL}}'
-    -X '{{.CONFIG_PKG}}.ScaleDisplayRemote={{.SCALE_SVC_DISPLAY_REMOTE}}'
-    -X '{{.CONFIG_PKG}}.TicketIDLocal={{.TICKET_SVC_ID_LOCAL}}'
-    -X '{{.CONFIG_PKG}}.TicketIDRemote={{.TICKET_SVC_ID_REMOTE}}'
-    -X '{{.CONFIG_PKG}}.TicketDisplayLocal={{.TICKET_SVC_DISPLAY_LOCAL}}'
-    -X '{{.CONFIG_PKG}}.TicketDisplayRemote={{.TICKET_SVC_DISPLAY_REMOTE}}'
+    -X '{{.TUIS_CONFIG}}.BuildDate={{.DATE}}'
+    -X '{{.TUIS_CONFIG}}.BuildTime={{.TIME}}'
+    -X '{{.TUIS_CONFIG}}.ScaleIDLocal={{.SCALE_SVC_ID_LOCAL}}'
+    -X '{{.TUIS_CONFIG}}.ScaleIDRemote={{.SCALE_SVC_ID_REMOTE}}'
+    -X '{{.TUIS_CONFIG}}.ScaleDisplayLocal={{.SCALE_SVC_DISPLAY_LOCAL}}'
+    -X '{{.TUIS_CONFIG}}.ScaleDisplayRemote={{.SCALE_SVC_DISPLAY_REMOTE}}'
+    -X '{{.TUIS_CONFIG}}.TicketIDLocal={{.TICKET_SVC_ID_LOCAL}}'
+    -X '{{.TUIS_CONFIG}}.TicketIDRemote={{.TICKET_SVC_ID_REMOTE}}'
+    -X '{{.TUIS_CONFIG}}.TicketDisplayLocal={{.TICKET_SVC_DISPLAY_LOCAL}}'
+    -X '{{.TUIS_CONFIG}}.TicketDisplayRemote={{.TICKET_SVC_DISPLAY_REMOTE}}'
 
+# Variables de entorno aplicadas a TODOS los comandos por defecto.
+# ESTO ES CRÍTICO: Fuerza la compilación para Windows sin importar en qué SO estés trabajando.
 env:
-  CGO_ENABLED: '0'
-  GOOS: windows
-  GOARCH: amd64
+  CGO_ENABLED: '0'   # Desactiva dependencias en C para asegurar un binario 100% estático
 
 tasks:
+  # Tarea por defecto al ejecutar `task list`. Ayuda a descubrir comandos.
   list:
-    desc: "📋 List all tasks with descriptions"
+    desc: "📋 Lista todas las tareas disponibles y su propósito"
     cmds:
       - task --list-all
-
-  init:assets:
-    desc: "🛠️ Create internal/assets/bin directory"
-    internal: true
-    cmds:
-      - powershell -Command "if (!(Test-Path '{{.ASSETS_BIN_DIR}}')) { New-Item -ItemType Directory -Path '{{.ASSETS_BIN_DIR}}' -Force | Out-Null }"
-    status:
-      - test -d "{{.ASSETS_BIN_DIR}}"
-
-  init:dist:
-    desc: "🛠️ Create dist directory"
-    internal: true
-    cmds:
-      - powershell -Command "if (!(Test-Path '{{.DIST_DIR}}')) { New-Item -ItemType Directory -Path '{{.DIST_DIR}}' -Force | Out-Null }"
-    status:
-      - test -d "{{.DIST_DIR}}"
-
-  # ══════════════════════════════════════════════════════════════
-  # 📦 INSTALLER SERVICE BUILDS (Output to assets/bin)
-  # ══════════════════════════════════════════════════════════════
-  installer:build:scale-local:
-    desc: "📦 Build Scale Service (Local) for embedding"
-    dir: "{{.SCALE_SRC}}"
-    deps: [ init:assets ]
-    internal: true
-    cmds:
-      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X {{.SCALE_MODULE}}.BuildEnvironment=local -X {{.SCALE_MODULE}}.ServiceName={{.SCALE_SVC_ID_LOCAL}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_LOCAL}}.exe" ./cmd/BasculaServicio
-      - echo "✅ Built {{.SCALE_SVC_ID_LOCAL}}.exe for installer"
-
-  installer:build:scale-remote:
-    desc: "📦 Build Scale Service (Remoto) for embedding"
-    dir: "{{.SCALE_SRC}}"
-    deps: [ init:assets ]
-    internal: true
-    cmds:
-      - go build -ldflags "{{.LDFLAGS_SCALE_BASE}} -H=windowsgui -X {{.SCALE_MODULE}}.BuildEnvironment=remote -X {{.SCALE_MODULE}}.ServiceName={{.SCALE_SVC_ID_REMOTE}}" -o "{{.ASSETS_BIN_DIR}}/{{.SCALE_SVC_ID_REMOTE}}.exe" ./cmd/BasculaServicio
-      - echo "✅ Built {{.SCALE_SVC_ID_REMOTE}}.exe for installer"
-
-  installer:build:ticket-local:
-    desc: "📦 Build Ticket Service (Local) for embedding"
-    dir: "{{.TICKET_SRC}}"
-    deps: [ init:assets ]
-    internal: true
-    cmds:
-      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=local" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_LOCAL}}.exe" ./cmd/TicketServicio
-      - echo "✅ Built {{.TICKET_SVC_ID_LOCAL}}.exe for installer"
-
-  installer:build:ticket-remote:
-    desc: "📦 Build Ticket Service (Remoto) for embedding"
-    dir: "{{.TICKET_SRC}}"
-    deps: [ init:assets ]
-    internal: true
-    cmds:
-      - go build -ldflags "{{.LDFLAGS_TICKET_BASE}} -H=windowsgui -X {{.TICKET_MODULE}}.BuildEnvironment=remote" -o "{{.ASSETS_BIN_DIR}}/{{.TICKET_SVC_ID_REMOTE}}.exe" ./cmd/TicketServicio
-      - echo "✅ Built {{.TICKET_SVC_ID_REMOTE}}.exe for installer"
-
-  installer:build:services:
-    desc: "📦 Build ALL service binaries for embedding (4 total)"
-    cmds:
-      - task: installer:build:scale-local
-      - task: installer:build:scale-remote
-      - task: installer:build:ticket-local
-      - task: installer:build:ticket-remote
-      - echo ""
-      - echo "══════════════════════════════════════════════════════════════"
-      - echo "  ✅ All service binaries ready for embedding"
-      - echo "══════════════════════════════════════════════════════════════"
-
-  installer:build:
-    desc: "🚀 Build TUI Installer with embedded services"
-    deps: [ installer:build:services, init:dist ]
-    cmds:
-      - go build -ldflags "{{.LDFLAGS_INSTALLER}}" -o "{{.DIST_DIR}}/{{.INSTALLER_SVC_NAME}}" ./cmd/R2kInstaller
-      - echo ""
-      - echo "══════════════════════════════════════════════════════════════"
-      - echo "  ✅ INSTALLER BUILD COMPLETE"
-      - echo "  📁 Output:{{.DIST_DIR}}"
-      - echo "══════════════════════════════════════════════════════════════"
-
-  installer:rebuild:
-    desc: "🔄 Clean and rebuild installer from scratch"
-    cmds:
-      - task: clean:installer
-      - task: installer:build
-
-  # ══════════════════════════════════════════════════════════════
-  # 🧹 UTILITIES
-  # ══════════════════════════════════════════════════════════════
-
-  clean:installer:
-    desc: "🧹 Clean installer build artifacts"
-    internal: true
-    cmds:
-      - cmd: powershell -Command "if (Test-Path '{{.ASSETS_BIN_DIR}}') { Remove-Item -Recurse -Force '{{.ASSETS_BIN_DIR}}' -ErrorAction SilentlyContinue }"
-        platforms: [ windows ]
-      - cmd: powershell -Command "if (Test-Path '{{.DIST_DIR}}') { Remove-Item -Recurse -Force '{{.DIST_DIR}}' -ErrorAction SilentlyContinue }"
-        platforms: [ windows ]
-      - echo "✅ Cleaned installer artifacts"
-
-  clean:all:
-    desc: "🧹 Clean all project bin and tmp directories"
-    internal: true
-    cmds:
-
-      - task: clean:installer
-      - cmd: powershell -Command "Remove-Item -Path '../scale-daemon/bin', '../scale-daemon/tmp', '../ticket-daemon/bin' -Recurse -Force -ErrorAction SilentlyContinue"
-        platforms: [ windows ]
-      - cmd: rm -rf ../scale-daemon/bin ../ticket-daemon/bin
-        platforms: [ linux, darwin ]
-      - echo "✅ All projects cleaned"

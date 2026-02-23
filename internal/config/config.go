@@ -1,3 +1,4 @@
+// Package config provides configuration values and utilities for the POS installer application.
 package config
 
 import "fmt"
@@ -27,23 +28,21 @@ var colors = map[string]string{
 	"bold":   "\033[1m",
 }
 
+// GetBanner returns a stylized banner string with build info and ASCII art logo
 func GetBanner() string {
 	// Build Info (ejemplo)
 	buildStr := fmt.Sprintf("Build: %s", BuildDate)
 
-	// CORRECCIÓN CLAVE:
-	// 1. El backtick (`) empieza inmediatamente con el string, sin salto de línea previo.
-	// 2. Se eliminaron líneas vacías internas para reducir la altura total.
-
 	return fmt.Sprintf(`%s╔══════════════════════════════════════════════════════╗%s
 %s║    ██████╗ ██████╗ ██╗  ██╗                          ║%s
-%s║    ██╔══██╗╚════██╗██║ ██╔╝   %sInstaller v2.0%s         %s║%s
+%s║    ██╔══██╗╚════██╗██║ ██╔╝   %sInstalador v3.0.0%s      %s║%s
 %s║    ██████╔╝ █████╔╝█████╔╝    %s%s%s      %s║%s
 %s║    ██╔══██╗██╔═══╝ ██╔═██╗                           ║%s
-%s║    ██║  ██║███████╗██║  ██╗   %sPOS Services%s           %s║%s
-%s║    ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝                          ║%s
-%s║          Instalador de Servicios POS                 ║%s
-%s║            (C) 2025 Red2000 R2k                      ║%s
+%s║    ██║  ██║███████╗██║  ██╗   -> Ticket v2.0.0       %s║%s
+%s║    ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝   -> Scale  v2.0.0       ║%s
+%s║                                                      ║%s
+%s║            Instalador de Servicios POS               ║%s
+%s║                 (C) 2025 Red2000                     ║%s
 %s╚══════════════════════════════════════════════════════╝%s`,
 		// Border Colors
 		colors["blue"], colors["reset"],
@@ -53,10 +52,11 @@ func GetBanner() string {
 		colors["cyan"], colors["white"], colors["cyan"], colors["blue"], colors["reset"],
 		colors["cyan"], colors["reset"], colors["yellow"], buildStr, colors["blue"], colors["reset"],
 		colors["cyan"], colors["reset"],
-		colors["cyan"], colors["green"], colors["cyan"], colors["blue"], colors["reset"],
+		colors["cyan"], colors["blue"], colors["reset"],
 		colors["cyan"], colors["reset"],
 
 		// Footer
+		colors["blue"], colors["reset"],
 		colors["blue"], colors["reset"],
 		colors["blue"], colors["reset"],
 		colors["blue"], colors["reset"],
