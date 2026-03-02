@@ -1,88 +1,131 @@
-# R2k Service Family Manager — Guía de Compilación, Pruebas y Ejecución
+# R2k Service Family Manager
 
-## Tabla de Contenidos
+**Instalador TUI interactivo y autocontenido para gestionar el ciclo de vida de servicios Windows POS — instala,
+monitorea y controla los servicios de Báscula y Tickets desde una única aplicación de terminal.**
 
-1. [Prerrequisitos](#1-prerrequisitos)
-2. [Configuración del Repositorio y Entorno](#2-configuración-del-repositorio-y-entorno)
-3. [Estructura del Proyecto](#3-estructura-del-proyecto)
-4. [Proceso de Compilación](#4-proceso-de-compilación)
-5. [Ejecución del Instalador](#5-ejecución-del-instalador)
-6. [Escenarios de Prueba](#6-escenarios-de-prueba)
-7. [Solución de Problemas](#7-solución-de-problemas)
+![Logo](URL)
+
+![Language](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D4?logo=windows&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Build Status](https://img.shields.io/github/actions/workflow/status/adcondev/poster-tuis/ci.yml?branch=main&label=CI)
+![CodeQL](https://img.shields.io/github/actions/workflow/status/adcondev/poster-tuis/codeql.yml?branch=main&label=CodeQL&logo=github)
 
 ---
 
-## 1. Prerrequisitos
+## Arquitectura
 
-### Software Requerido
+```mermaid
+flowchart TD
+    subgraph Build["Pipeline de Compilación (Taskfile)"]
+        ENV["Credenciales .env"] --> HASH["cmd/hashpw<br/>bcrypt + Base64"]
+        HASH --> LDFLAGS["Linker Flags<br/>-ldflags -X"]
+        SCALE_SRC["Repo scale-daemon"] --> CROSS["Compilación Cruzada<br/>GOOS=windows"]
+        TICKET_SRC["Repo ticket-daemon"] --> CROSS
+        CROSS --> EMBED["go:embed<br/>4 Binarios de Servicio"]
+    end
 
-| Herramienta       | Versión | Propósito                         | Instalación                                                     |
-|-------------------|---------|-----------------------------------|-----------------------------------------------------------------|
-| **Windows 10/11** | Cualq.  | SO Objetivo (servicios usan `sc`) | —                                                               |
-| **Go**            | 1.25+   | Compilador                        | [go.dev/dl](https://go.dev/dl/)                                 |
-| **Task**          | 3.x     | Orquestación de compilación       | [taskfile.dev/installation](https://taskfile.dev/installation/) |
-| **Git**           | Cualq.  | Clonar repositorios               | [git-scm.com](https://git-scm.com/)                             |
-| **PowerShell**    | 5.1+    | Scripts de compilación (nativo)   | Integrado                                                       |
+    subgraph Installer["Instalador TUI R2k"]
+        MAIN["cmd/R2kInstaller<br/>Verificación Admin"] --> UI["internal/ui<br/>Bubble Tea 6 Pantallas<br/>Máquina de Estados"]
+        UI --> SVC["internal/service<br/>Manager"]
+        UI --> CFG["internal/config<br/>Metadatos de Build"]
+        SVC --> ASSETS["internal/assets<br/>Binarios Embebidos"]
+        SVC --> SCM["Windows SCM<br/>sc.exe"]
+    end
 
-### Verificar Instalación
+    LDFLAGS --> MAIN
+    EMBED --> ASSETS
 
-Abra **PowerShell como Administrador** y ejecute:
+    subgraph Windows["Sistema Destino"]
+        SCM --> |"Instalar / Desinstalar"| PROGFILES["%ProgramFiles%<br/>Binarios de Servicio"]
+        SCM --> |"Iniciar / Detener / Reiniciar"| SERVICES["Servicios de Windows<br/>services.msc"]
+        SERVICES --> LOGS["%ProgramData%<br/>Logs del Servicio"]
+    end
 
-```powershell
-go version          # Esperado: go1.25+
-task --version      # Esperado: Task version 3.x
-git --version       # Esperado: git version 2.x+
-
+    style Build fill:#1a1b26,stroke:#7aa2f7,color:#c0caf5
+    style Installer fill:#1a1b26,stroke:#ff0040,color:#c0caf5
+    style Windows fill:#1a1b26,stroke:#9ece6a,color:#c0caf5
 ```
 
+## Características
+
+- **TUI Interactiva** — Interfaz completa en terminal con navegación por teclado, spinners, barras de progreso y ayuda
+  contextual, construida con Bubble Tea de Charm
+- **Instalador Autocontenido** — Cuatro ejecutables de servicios Windows embebidos en tiempo de compilación vía
+  `go:embed` en un solo binario portable de ~15–20 MB
+- **Ciclo de Vida Completo** — Instalar, iniciar, detener, reiniciar y desinstalar servicios de Windows directamente
+  desde la terminal usando `sc.exe`
+- **Exclusividad Mutua** — Solo una variante (Local **o** Remoto) de cada familia de servicios puede estar instalada a
+  la vez
+- **Monitoreo en Tiempo Real** — Sondeo en segundo plano cada 5 segundos que actualiza automáticamente el estado de los
+  servicios en todas las pantallas
+- **Credenciales Seguras** — Las contraseñas se hashean con bcrypt y se codifican en Base64 durante la compilación; el
+  texto plano nunca llega al binario
+- **Gestión de Logs** — Abre los logs del servicio en Notepad o navega a la carpeta de logs en Explorer directamente
+  desde la TUI
+- **Recuperación Automática** — Los servicios se configuran con `sc failure` para reiniciarse automáticamente ante
+  fallos
+
 ---
 
-## 2. Configuración del Repositorio y Entorno
+## Primeros Pasos
 
-Los tres repositorios deben ser **directorios hermanos** (al mismo nivel) — el Taskfile hace referencia a
-`../scale-daemon` y `../ticket-daemon` en relación con `poster-tuis`.
+### Prerrequisitos
+
+| Herramienta    | Versión    | Instalación                                                     |
+|----------------|------------|-----------------------------------------------------------------|
+| **Windows**    | 10/11      | —                                                               |
+| **Go**         | 1.25+      | [go.dev/dl](https://go.dev/dl/)                                 |
+| **Task**       | 3.x        | [taskfile.dev/installation](https://taskfile.dev/installation/) |
+| **Git**        | Cualquiera | [git-scm.com](https://git-scm.com/)                             |
+| **PowerShell** | 5.1+       | Viene incluido en Windows                                       |
+
+### Paso 1 — Clonar los repositorios
+
+Los tres repositorios deben quedar como **carpetas hermanas** (al mismo nivel). El Taskfile referencia `../scale-daemon`
+y `../ticket-daemon` de forma relativa.
 
 ```powershell
-# Crear directorio de trabajo
 mkdir C:\dev\r2k
 cd C:\dev\r2k
 
-# Clonar los tres repositorios uno al lado del otro
 git clone https://github.com/adcondev/poster-tuis.git
 git clone https://github.com/adcondev/scale-daemon.git
 git clone https://github.com/adcondev/ticket-daemon.git
-
 ```
 
-Después de clonar, verifique esta estructura de directorios:
+Resultado esperado:
 
 ```
 C:\dev\r2k\
-├── poster-tuis\       ← Instalador TUI (este proyecto)
-├── scale-daemon\      ← Demonio del servicio Scale/Báscula
-└── ticket-daemon\     ← Demonio del servicio de impresora de Tickets
-
+├── poster-tuis\        ← Este proyecto (instalador TUI)
+├── scale-daemon\       ← Servicio de báscula
+└── ticket-daemon\      ← Servicio de tickets
 ```
 
-### Configurar Variables de Entorno (.env)
+### Paso 2 — Configurar el archivo `.env`
 
-El `Taskfile.yml` requiere un archivo `.env` en la raíz de `poster-tuis` para hashear e inyectar las credenciales por
-seguridad.
+El Taskfile necesita un archivo `.env` en la raíz de `poster-tuis` para hashear e inyectar las credenciales de forma
+segura.
 
-Cree un archivo `.env` en `C:\dev\r2k\poster-tuis\.env` con el siguiente contenido (ajuste los valores según su
-entorno):
+```powershell
+cd poster-tuis
+copy .env.example .env
+```
+
+Edita el `.env` con tus valores. Ejemplo:
 
 ```env
-SCALE_DASHBOARD_PASSWORD=scale
+SCALE_DASHBOARD_PASSWORD=mi_contraseña_scale
 SCALE_AUTH_TOKEN=mi_token_secreto
 SCALE_PORT=8765
-TICKET_DASHBOARD_PASSWORD=ticket
+
+TICKET_DASHBOARD_PASSWORD=mi_contraseña_ticket
 TICKET_AUTH_TOKEN=mi_token_secreto
 TICKET_PORT=8766
-
 ```
 
-### Inicializar Módulos de Go
+### Paso 3 — Inicializar los módulos de Go
 
 ```powershell
 cd C:\dev\r2k\poster-tuis
@@ -93,379 +136,157 @@ go mod tidy
 
 cd C:\dev\r2k\ticket-daemon
 go mod tidy
-
 ```
+
+### Paso 4 — Compilar el instalador
+
+Desde la carpeta `poster-tuis`, elige una de las dos opciones:
+
+**Opción A — Un solo comando (recomendada):**
+
+```powershell
+cd C:\dev\r2k\poster-tuis
+task build:rebuild
+```
+
+Esto ejecuta automáticamente: limpieza → compilación de los 4 servicios → compilación del instalador TUI.
+
+**Opción B — Paso a paso (para depuración):**
+
+```powershell
+cd C:\dev\r2k\poster-tuis
+
+# 1. Limpiar artefactos anteriores
+task setup:clean:all
+
+# 2. Compilar los 4 binarios de servicio (.exe)
+#    Se colocan en internal/assets/bin/ para ser embebidos
+task build:services
+
+# 3. Compilar el instalador TUI
+#    Embebe los 4 binarios y genera dist/R2k_POS_Instalador.exe
+task build:installer
+```
+
+**Verificar que la compilación fue exitosa:**
+
+```powershell
+# El archivo debe existir y pesar entre 15-20 MB (contiene 4 binarios embebidos)
+(Get-Item .\dist\R2k_POS_Instalador.exe).Length / 1MB
+```
+
+### Paso 5 — Ejecutar el instalador
+
+> **⚠️ Se requieren privilegios de Administrador** — El instalador usa `sc.exe` para registrar y controlar servicios de
+> Windows.
+
+```powershell
+# Abrir PowerShell como Administrador, luego:
+cd C:\dev\r2k\poster-tuis
+.\dist\R2k_POS_Instalador.exe
+```
+
+**Controles de teclado:**
+
+| Tecla       | Acción                       |
+|-------------|------------------------------|
+| `↑` / `k`   | Navegar arriba               |
+| `↓` / `j`   | Navegar abajo                |
+| `Enter`     | Seleccionar                  |
+| `r`         | Reinicio rápido del servicio |
+| `?`         | Mostrar/ocultar ayuda        |
+| `ESC` / `q` | Volver / Salir               |
 
 ---
 
-## 3. Estructura del Proyecto
+## Sistema de Tareas (Taskfile)
+
+Este proyecto usa [Task](https://taskfile.dev/) como ejecutor de tareas (similar a Make, pero escrito en YAML). El
+archivo `Taskfile.yml` principal importa tres módulos especializados:
+
+```
+Taskfile.yml              ← Orquestador principal (variables, ldflags, .env)
+├── taskfiles/
+│   ├── build.yml         ← Compilación de servicios e instalador
+│   ├── setup.yml         ← Creación de directorios y archivos temporales
+│   └── ci.yml            ← Linting, pruebas unitarias y benchmarks
+```
+
+Para ver todas las tareas disponibles: `task list`
+
+### 🏗️ Compilación (`build:`)
+
+| Comando                | Qué hace                                                                  |
+|------------------------|---------------------------------------------------------------------------|
+| `task build:services`  | Compila los 4 binarios de servicio y los coloca en `internal/assets/bin/` |
+| `task build:installer` | Embebe los 4 binarios y genera `dist/R2k_POS_Instalador.exe`              |
+| `task build:rebuild`   | Limpia todo y recompila desde cero (limpieza + servicios + instalador)    |
+
+### 🛠️ Preparación (`setup:`)
+
+| Comando                | Qué hace                                                                |
+|------------------------|-------------------------------------------------------------------------|
+| `task setup:init:all`  | Crea los directorios necesarios y genera archivos dummy para `go:embed` |
+| `task setup:clean:all` | Elimina `internal/assets/bin/` y `dist/`                                |
+
+> **💡 ¿Qué son los archivos dummy?** El paquete `assets` usa directivas `//go:embed` que necesitan que los archivos
+`.exe` existan en disco para que `go build` y el linter funcionen correctamente. Los dummies son archivos de texto plano
+> temporales que satisfacen ese requisito durante el desarrollo, antes de la compilación real.
+
+### 🔍 Calidad de Código (`ci:`)
+
+| Comando              | Qué hace                                                                   |
+|----------------------|----------------------------------------------------------------------------|
+| `task ci:linter`     | Ejecuta `golangci-lint` con 15+ reglas de análisis estático                |
+| `task ci:test`       | Ejecuta las pruebas unitarias con reporte de cobertura                     |
+| `task ci:benchmark`  | Ejecuta benchmarks de rendimiento                                          |
+| `task ci:debug:auth` | Muestra el flujo completo de hashing de contraseñas (útil para depuración) |
+
+### ¿Cómo funciona el pipeline de compilación?
+
+El proceso completo que ocurre al ejecutar `task build:rebuild`:
+
+1. **Limpieza** — Elimina los directorios `internal/assets/bin/` y `dist/` para empezar desde cero
+2. **Lectura de `.env`** — Taskfile carga automáticamente las variables del archivo `.env` (contraseñas, tokens,
+   puertos)
+3. **Hashing de contraseñas** — Ejecuta `cmd/hashpw` para generar hashes bcrypt codificados en Base64 a partir de las
+   contraseñas
+4. **Compilación cruzada** — Compila los 4 servicios desde los repos hermanos (`../scale-daemon`, `../ticket-daemon`)
+   con `GOOS=windows GOARCH=amd64`
+5. **Inyección de configuración** — Usa `-ldflags -X` para inyectar en cada binario: fecha de compilación, hash de
+   contraseña, token, puerto e ID de servicio
+6. **Embebido** — Los 4 archivos `.exe` resultantes se colocan en `internal/assets/bin/`, donde las directivas
+   `go:embed` los integran al instalador
+7. **Compilación final** — Se genera `dist/R2k_POS_Instalador.exe` (~15–20 MB), un solo archivo que contiene todo lo
+   necesario
+
+---
+
+## Estructura del Proyecto
 
 ```
 poster-tuis/
-├── main.go                          # Punto de entrada (check de admin + tea.NewProgram)
-├── go.mod                           # Definición del módulo
-├── go.sum                           # Checksums de dependencias
-├── Taskfile.yml                     # Orquestación de compilación
-├── .env                             # Variables de seguridad (IGNORADO POR GIT)
-├── .gitignore                       # Excluye bin/, dist/, internal/assets/bin/
-│
+├── cmd/
+│   ├── R2kInstaller/           # Punto de entrada de la TUI (verificación admin + tea.NewProgram)
+│   └── hashpw/                 # Utilidad para generar hashes bcrypt en tiempo de compilación
 ├── internal/
-│   ├── assets/
-│   │   ├── assets.go                # Directivas //go:embed para los 4 binarios de servicio
-│   │   └── bin/                     # ← Generado por Taskfile (ignorado por git)
-│   │       ├── R2k_BasculaServicio_Local.exe
-│   │       ├── R2k_BasculaServicio_Remote.exe
-│   │       ├── R2k_TicketServicio_Local.exe
-│   │       └── R2k_TicketServicio_Remote.exe
-│   │
-│   ├── config/
-│   │   └── config.go                # BuildDate/Time, GenerateServiceNames(), GetBanner()
-│   │
-│   ├── service/
-│   │   ├── registry.go              # Structs de variantes de servicio + GetServiceRegistry()
-│   │   ├── manager.go               # Instalar/Desinstalar/Iniciar/Detener/Reiniciar
-│   │   ├── status.go                # Enum de estatus + FamilyStatus (exclusividad mutua)
-│   │   └── logs.go                  # Resolución de ruta de logs + abrir en Notepad/Explorer
-│   │
-│   └── ui/
-│       ├── screens.go               # Enum de estado de pantalla (6 pantallas)
-│       ├── builders.go              # Construcción de ítems de menú (impone exclusividad mutua)
-│       ├── model.go                 # Struct del modelo + InitialModel() + ayudas de navegación
-│       ├── update.go                # Update() + manejadores de teclas por pantalla + ayudas de acción
-│       ├── view.go                  # View() + renderizadores de las 6 pantallas
-│       └── styles.go                # Colores + estilos lipgloss
-│
-└── dist/                            # ← Generado por Taskfile (ignorado por git)
-    └── R2k_POS_Instalador.exe       # Salida final (~15-20MB)
-
+│   ├── assets/                 # Directivas go:embed para los 4 binarios de servicio
+│   ├── config/                 # Metadatos de compilación y banner (inyectados vía ldflags)
+│   ├── service/                # Integración con el Administrador de Servicios de Windows (sc.exe)
+│   └── ui/                     # Interfaz TUI con Bubble Tea (6 pantallas, estilos, teclas)
+├── taskfiles/                  # Tareas modulares de compilación (build, setup, ci)
+├── .github/workflows/          # CI, CodeQL, automatización de PRs, dashboard de estado
+├── Taskfile.yml                # Orquestador principal de compilación
+└── .golangci.yml               # Configuración del linter (15+ reglas de análisis)
 ```
 
-### Flujo de Dependencias Clave (Sin Importaciones Circulares)
+## Contribuir
 
-```
-main.go → internal/ui
-internal/ui → internal/service, internal/config
-internal/service → internal/assets, internal/config
-internal/config → (solo stdlib)
-internal/assets → (solo stdlib embed)
+1. Haz un fork del repositorio
+2. Crea una rama siguiendo Conventional Commits (`feat(ui): agregar nueva pantalla`)
+3. Verifica que pasen `task ci:linter` y `task ci:test`
+4. Envía un Pull Request — el CI validará automáticamente el título, ejecutará tests, linting y benchmarks
 
-```
+## Licencia
 
----
-
-## 4. Proceso de Compilación
-
-Todos los comandos se ejecutan desde el directorio `poster-tuis`.
-
-```powershell
-cd C:\dev\r2k\poster-tuis
-
-```
-
-### Paso 1: Limpiar Todo
-
-```powershell
-task clean:all
-
-```
-
-**Salida esperada:**
-
-```
-✅ Artefactos del instalador limpiados
-✅ Todos los proyectos limpiados
-
-```
-
-### Paso 2: Compilar Binarios de Servicio para Incrustar
-
-Esto compila los 4 archivos `.exe` de servicio desde los repositorios hermanos y los coloca en `internal/assets/bin/`:
-
-```powershell
-task installer:build:services
-
-```
-
-**Salida esperada:**
-
-```
-✅ Compilado R2k_BasculaServicio_Local.exe para el instalador
-✅ Compilado R2k_BasculaServicio_Remote.exe para el instalador
-✅ Compilado R2k_TicketServicio_Local.exe para el instalador
-✅ Compilado R2k_TicketServicio_Remote.exe para el instalador
-
-══════════════════════════════════════════════════════════════
-  ✅ Todos los binarios de servicios están listos para integrarse
-══════════════════════════════════════════════════════════════
-
-```
-
-**Verificar:**
-
-```powershell
-Get-ChildItem .\internal\assets\bin\
-
-# Esperado: 4 archivos .exe
-# R2k_BasculaServicio_Local.exe
-# R2k_BasculaServicio_Remote.exe
-# R2k_TicketServicio_Local.exe
-# R2k_TicketServicio_Remote.exe
-
-```
-
-### Paso 3: Compilar el Instalador TUI
-
-Esto compila la TUI en Go, incrustando los 4 binarios de servicio dentro del ejecutable final:
-
-```powershell
-task installer:build
-
-```
-
-**Salida esperada:**
-
-```
-══════════════════════════════════════════════════════════════
-  ✅ COMPILACIÓN DEL INSTALADOR FINALIZADA
-  📁 Salida: C:\dev\r2k\poster-tuis\dist
-══════════════════════════════════════════════════════════════
-
-```
-
-**Verificar tamaño del archivo** (debe ser de ~15-20MB porque contiene 4 binarios de servicio incrustados):
-
-```powershell
-(Get-Item .\dist\R2k_POS_Instalador.exe).Length / 1MB
-# Esperado: aproximadamente 15-20
-
-```
-
-### Compilación en un Comando (Pasos Combinados)
-
-```powershell
-task installer:rebuild
-
-```
-
-Esto ejecuta la limpieza de artefactos y luego reconstruye los binarios y el instalador final de forma secuencial.
-
----
-
-## 5. Ejecución del Instalador
-
-### ⚠️ CRÍTICO: Debe ejecutarse como Administrador
-
-La TUI requiere privilegios de administrador para operaciones con `sc.exe` (control de servicios de Windows). Si se
-lanza sin permisos de admin, muestra un mensaje de error y sale.
-
-### Opciones de Lanzamiento
-
-**Opción A: Método de clic derecho**
-
-1. Navegue a la carpeta `dist\` en el Explorador de Archivos.
-2. Haga clic derecho en `R2k_POS_Instalador.exe`.
-3. Seleccione **"Ejecutar como administrador"**.
-
-**Opción B: PowerShell como Admin**
-
-```powershell
-# Abra PowerShell como Administrador, luego:
-cd C:\dev\r2k\poster-tuis
-.\dist\R2k_POS_Instalador.exe
-
-```
-
-**Opción C: CMD como Admin**
-
-```cmd
-:: Abra CMD como Administrador, luego:
-cd C:\dev\r2k\poster-tuis
-dist\R2k_POS_Instalador.exe
-
-```
-
-### Lo que debería ver
-
-Al iniciarse, la TUI muestra:
-
-```
-╔═════════════════════════════════════════════╗
-║        SERVICE FAMILY MANAGER v2.0          ║
-║       Build: 2026-02-05 14:30:22            ║
-║                                             ║
-║     Gestión de Servicios Red2000            ║
-║     - Scale Service (Local/Remote)          ║
-║     - Ticket Service (Local/Remote)         ║
-║                                             ║
-╚═════════════════════════════════════════════╝
-
-SELECCIONE UNA FAMILIA DE SERVICIOS
-
-  [1] Scale Service    No instalado
-  [2] Ticket Service   No instalado
-  [Q] Salir
-
-scale: [-] | ticket: [-]
-
-```
-
-### Controles de Teclado
-
-| Tecla       | Acción                                                      |
-|-------------|-------------------------------------------------------------|
-| `↑` / `k`   | Mover arriba                                                |
-| `↓` / `j`   | Mover abajo                                                 |
-| `Enter`     | Seleccionar elemento                                        |
-| `r`         | Reinicio rápido (pantalla de familia, servicio debe correr) |
-| `ESC` / `q` | Volver atrás / Salir                                        |
-| `?`         | Alternar ayuda                                              |
-| `Ctrl+C`    | Forzar salida (pantalla de procesamiento)                   |
-
-### Flujo de Navegación
-
-```
-Dashboard (selector de familia)
-  ├── Scale Service
-  │     ├── [Sin servicio instalado] → Instalar Local / Instalar Remote
-  │     └── [Servicio instalado] → Iniciar / Detener / Reiniciar / Logs / Desinstalar
-  │           └── Logs → Abrir Archivo / Abrir Carpeta
-  └── Ticket Service
-        └── (misma estructura que Scale)
-
-```
-
----
-
-## 6. Escenarios de Prueba
-
-Abra **Services.msc** (`Win+R` → `services.msc`) junto a la TUI para verificar.
-
-### Prueba 1: Instalación Limpia — Scale Local
-
-| Paso | Acción                           | Esperado                                                                       |
-|------|----------------------------------|--------------------------------------------------------------------------------|
-| 1    | Lanzar instalador                | Dashboard muestra ambas familias como "No instalado"                           |
-| 2    | Seleccionar "Scale Service"      | Menú de familia muestra: "Instalar LOCAL", "Instalar REMOTE", "Volver"         |
-| 3    | Selecc. "Instalar Versión LOCAL" | Diálogo de confirmación: "¿Instalar versión Local de Scale?"                   |
-| 4    | Presionar `S` para confirmar     | Pantalla de procesamiento con spinner + barra de progreso                      |
-| 5    | Esperar a que complete           | Resultado: "[+] Local instalado e iniciado correctamente"                      |
-| 6    | Presionar `Enter` para seguir    | Menú de familia ahora muestra: Detener, Reiniciar, Ver Logs, Desinstalar, etc. |
-| 7    | Verificar en Services.msc        | Servicio `R2k_BasculaServicio_Local` existe, estado RUNNING (En ejecución)     |
-
-### Prueba 2: Exclusividad Mutua
-
-| Paso | Acción                            | Esperado                                                   |
-|------|-----------------------------------|------------------------------------------------------------|
-| 1    | Con Scale Local instalado         | Menú de familia NO muestra "Instalar REMOTE"               |
-| 2    | Selecc. "Desinstalar Local" → `S` | Procesando → "[-] Local desinstalado correctamente"        |
-| 3    | Presionar `Enter`                 | Menú muestra "Instalar LOCAL" e "Instalar REMOTE" de nuevo |
-| 4    | Verificar en Services.msc         | Servicio `R2k_BasculaServicio_Local` ya no existe          |
-
-### Prueba 3: Ambas Familias Instaladas
-
-| Paso | Acción                 | Esperado                                                                |
-|------|------------------------|-------------------------------------------------------------------------|
-| 1    | Instalar Scale Local   | Dashboard muestra "Scale Service: Local - [+] EN EJECUCION"             |
-| 2    | Volver, selecc. Ticket | Menú muestra opciones de instalación                                    |
-| 3    | Instalar Ticket Remote | Barra de estado del Dashboard: `scale: [+] Local                        |
-| 4    | Verificar Services.msc | Ambos `R2k_BasculaServicio_Local` y `R2k_TicketServicio_Remote` existen |
-
-### Prueba 4: Operaciones de Servicio (Detener / Iniciar / Reiniciar)
-
-| Paso | Acción                     | Esperado                                                     |
-|------|----------------------------|--------------------------------------------------------------|
-| 1    | Con un servicio corriendo  | Menú muestra "Detener" y "Reiniciar"                         |
-| 2    | Selecc. "Detener Servicio" | Resultado: "[OK] Detener Servicio completado"                |
-| 3    | Volver al menú             | Menú ahora muestra "Iniciar" (Detener/Reiniciar desaparecen) |
-| 4    | Selecc. "Iniciar Servicio" | Resultado: "[OK] Iniciar Servicio completado"                |
-| 5    | Presionar atajo `r`        | Reinicio se ejecuta directamente (sin selección de menú)     |
-
-### Prueba 5: Gestión de Logs
-
-| Paso | Acción                          | Esperado                                           |
-|------|---------------------------------|----------------------------------------------------|
-| 1    | Con un servicio instalado       | Seleccionar "Ver Logs" desde menú de familia       |
-| 2    | Selecc. "Abrir Archivo de Logs" | Se abre el Bloc de notas con el archivo `.log`     |
-| 3    | Selecc. "Abrir Carpeta de Logs" | Se abre Explorer en `%PROGRAMDATA%\{ServiceName}\` |
-| 4    | Presionar `ESC`                 | Regresa al menú de familia                         |
-
-### Prueba 6: Sondeo de Estado en Segundo Plano
-
-| Paso | Acción                                         | Esperado                                                                |
-|------|------------------------------------------------|-------------------------------------------------------------------------|
-| 1    | Dejar TUI abierta en pantalla de familia       | El servicio se muestra como "RUNNING"                                   |
-| 2    | En Services.msc, clic derecho servicio → Stop  | —                                                                       |
-| 3    | Esperar ~5 segundos                            | Menú TUI se auto-actualiza: "DETENIDO", muestra opción "Iniciar"        |
-| 4    | En Services.msc, clic derecho servicio → Start | —                                                                       |
-| 5    | Esperar ~5 segundos                            | Menú TUI se auto-actualiza: "EN EJECUCION", muestra "Detener/Reiniciar" |
-
-### Prueba 7: Chequeo de Admin (Prueba Negativa)
-
-| Paso | Acción                                             | Esperado                                           |
-|------|----------------------------------------------------|----------------------------------------------------|
-| 1    | Doble clic en `R2k_POS_Instalador.exe` (sin admin) | Muestra "[!] Permisos de Administrador Requeridos" |
-| 2    | Presionar Enter                                    | La ventana se cierra                               |
-
----
-
-## 7. Solución de Problemas
-
-### Errores de Compilación
-
-| Error                                                   | Causa                             | Solución                                                                       |
-|---------------------------------------------------------|-----------------------------------|--------------------------------------------------------------------------------|
-| `pattern bin/*.exe: no matching files found`            | `internal/assets/bin/` está vacío | Ejecute `task installer:build:services` primero                                |
-| `cannot find package ".../internal/assets"`             | Módulo no resuelto                | Ejecute `go mod tidy` en `poster-tuis/`                                        |
-| `undefined: assets.BasculaLocalBinary`                  | Nombre de paquete erróneo         | Verifique `package assets` (no `package main`) en `assets.go`                  |
-| `config.ScaleBaseName undefined`                        | ldflags no se están inyectando    | Revise que `LDFLAGS_INSTALLER` en Taskfile incluya `-X '...ScaleBaseName=...'` |
-| `cannot find module providing package .../scale-daemon` | Ruta hermana incorrecta           | Verifique que exista `../scale-daemon/` relativo a `poster-tuis/`              |
-| La compilación tiene éxito pero el `.exe` pesa ~5MB     | Falló la incrustación             | Verifique que existan 4 archivos en `internal/assets/bin/` antes de compilar   |
-| `Error cargando .env` o faltan variables                | Archivo `.env` ausente            | Asegúrese de haber creado `.env` en el root del proyecto como se indicó        |
-
-### Errores en Tiempo de Ejecución
-
-| Síntoma                                   | Causa                                     | Solución                                                     |
-|-------------------------------------------|-------------------------------------------|--------------------------------------------------------------|
-| TUI muestra error de admin y sale         | No se ejecuta como administrador          | Clic derecho → Ejecutar como administrador                   |
-| Instala con éxito pero servicio no inicia | Binario de servicio necesita dependencias | Revise el log del servicio en `%PROGRAMDATA%\{ServiceName}\` |
-| El estado muestra "DESCONOCIDO"           | Servicio está en estado de transición     | Espere unos segundos, el estado debería resolverse           |
-| Notepad abre pero el archivo está vacío   | Servicio aún no ha escrito logs           | Inicie el servicio y espere actividad                        |
-
-### Comandos de Limpieza
-
-```powershell
-# Eliminar todos los servicios instalados por la TUI (ejecutar como admin)
-sc stop R2k_BasculaServicio_Local 2>$null
-sc delete R2k_BasculaServicio_Local 2>$null
-sc stop R2k_BasculaServicio_Remote 2>$null
-sc delete R2k_BasculaServicio_Remote 2>$null
-sc stop R2k_TicketServicio_Local 2>$null
-sc delete R2k_TicketServicio_Local 2>$null
-sc stop R2k_TicketServicio_Remote 2>$null
-sc delete R2k_TicketServicio_Remote 2>$null
-
-# Eliminar binarios instalados
-Remove-Item -Recurse -Force "$env:ProgramFiles\R2k_*" -ErrorAction SilentlyContinue
-
-# Limpiar artefactos de compilación
-cd C:\dev\r2k\poster-tuis
-task clean:all
-
-```
-
-### Verificar Estado Limpio
-
-```powershell
-# No deberían existir servicios R2k
-sc query state= all | findstr "R2k_"
-# Esperado: sin salida
-
-# No deberían haber directorios R2k en Archivos de Programa
-Get-ChildItem "$env:ProgramFiles\R2k_*"
-# Esperado: sin resultados
-
-# Sin artefactos de compilación
-Test-Path .\dist\R2k_POS_Instalador.exe       # Esperado: False
-Test-Path .\internal\assets\bin\               # Esperado: False
-
-```
+Este proyecto está bajo la [Licencia MIT](LICENSE) — © 2026 Adrián Constante.
