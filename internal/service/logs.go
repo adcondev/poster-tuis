@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -61,8 +62,7 @@ func secureLaunch(exe, target, allowedBase string) error {
 
 	// SECURE: Validate and launch with absolute paths to prevent command injection
 	// Eliminamos el context porque Notepad/Explorer deben vivir de forma independiente.
-	//nolint:gosec,noctx // inputs validated, lookpath used, detached GUI app explicitly needs no context
-	cmd := exec.Command(exePath, absTarget)
+	cmd := exec.CommandContext(context.Background(), exePath, absTarget) // #nosec G204
 	return cmd.Start()
 }
 
