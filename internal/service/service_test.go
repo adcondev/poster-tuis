@@ -5,6 +5,15 @@ import (
 	"testing"
 )
 
+const (
+	errInvalidDisplayName = "invalid DisplayName"
+	errInvalidExeName     = "invalid ExeName"
+	errInvalidRegistryName = "invalid RegistryName"
+	testServiceName       = "ServiceName"
+	testMyService         = "My Service"
+	testServiceExe        = "service.exe"
+)
+
 func TestValidateServiceVariantFields(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -16,7 +25,7 @@ func TestValidateServiceVariantFields(t *testing.T) {
 			name: "Valid Variant",
 			variant: Variant{
 				RegistryName: "Service_Name-1",
-				ExeName:      "service.exe",
+				ExeName:      testServiceExe,
 				DisplayName:  "My Service Display Name",
 			},
 			wantErr: false,
@@ -25,101 +34,101 @@ func TestValidateServiceVariantFields(t *testing.T) {
 			name: "Invalid RegistryName",
 			variant: Variant{
 				RegistryName: "Service!Name",
-				ExeName:      "service.exe",
-				DisplayName:  "My Service",
+				ExeName:      testServiceExe,
+				DisplayName:  testMyService,
 			},
 			wantErr:     true,
-			errContains: "invalid RegistryName",
+			errContains: errInvalidRegistryName,
 		},
 		{
 			name: "Empty RegistryName",
 			variant: Variant{
 				RegistryName: "",
-				ExeName:      "service.exe",
-				DisplayName:  "My Service",
+				ExeName:      testServiceExe,
+				DisplayName:  testMyService,
 			},
 			wantErr:     true,
-			errContains: "invalid RegistryName",
+			errContains: errInvalidRegistryName,
 		},
 		{
 			name: "Invalid ExeName Path Traversal",
 			variant: Variant{
-				RegistryName: "ServiceName",
+				RegistryName: testServiceName,
 				ExeName:      "../service.exe",
-				DisplayName:  "My Service",
+				DisplayName:  testMyService,
 			},
 			wantErr:     true,
-			errContains: "invalid ExeName",
+			errContains: errInvalidExeName,
 		},
 		{
 			name: "Invalid ExeName Forward Slash",
 			variant: Variant{
-				RegistryName: "ServiceName",
+				RegistryName: testServiceName,
 				ExeName:      "dir/service.exe",
-				DisplayName:  "My Service",
+				DisplayName:  testMyService,
 			},
 			wantErr:     true,
-			errContains: "invalid ExeName",
+			errContains: errInvalidExeName,
 		},
 		{
 			name: "Invalid ExeName Backslash",
 			variant: Variant{
-				RegistryName: "ServiceName",
+				RegistryName: testServiceName,
 				ExeName:      "dir\\service.exe",
-				DisplayName:  "My Service",
+				DisplayName:  testMyService,
 			},
 			wantErr:     true,
-			errContains: "invalid ExeName",
+			errContains: errInvalidExeName,
 		},
 		{
 			name: "Invalid ExeName Shell Metachar",
 			variant: Variant{
-				RegistryName: "ServiceName",
+				RegistryName: testServiceName,
 				ExeName:      "service$.exe",
-				DisplayName:  "My Service",
+				DisplayName:  testMyService,
 			},
 			wantErr:     true,
-			errContains: "invalid ExeName",
+			errContains: errInvalidExeName,
 		},
 		{
 			name: "Empty ExeName",
 			variant: Variant{
-				RegistryName: "ServiceName",
+				RegistryName: testServiceName,
 				ExeName:      "",
-				DisplayName:  "My Service",
+				DisplayName:  testMyService,
 			},
 			wantErr:     true,
-			errContains: "invalid ExeName",
+			errContains: errInvalidExeName,
 		},
 		{
 			name: "Invalid DisplayName Shell Metachar",
 			variant: Variant{
-				RegistryName: "ServiceName",
-				ExeName:      "service.exe",
+				RegistryName: testServiceName,
+				ExeName:      testServiceExe,
 				DisplayName:  "My Service $",
 			},
 			wantErr:     true,
-			errContains: "invalid DisplayName",
+			errContains: errInvalidDisplayName,
 		},
 		{
 			name: "Invalid DisplayName Newline",
 			variant: Variant{
-				RegistryName: "ServiceName",
-				ExeName:      "service.exe",
+				RegistryName: testServiceName,
+				ExeName:      testServiceExe,
 				DisplayName:  "My Service \n",
 			},
 			wantErr:     true,
-			errContains: "invalid DisplayName",
+			errContains: errInvalidDisplayName,
 		},
 		{
 			name: "Empty DisplayName",
 			variant: Variant{
-				RegistryName: "ServiceName",
-				ExeName:      "service.exe",
+				RegistryName: testServiceName,
+				ExeName:      testServiceExe,
 				DisplayName:  "",
 			},
 			wantErr:     true,
-			errContains: "invalid DisplayName",
+			errContains: errInvalidDisplayName,
 		},
 	}
 
