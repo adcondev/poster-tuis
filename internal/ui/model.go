@@ -16,6 +16,13 @@ import (
 	"github.com/adcondev/poster-tuis/internal/service"
 )
 
+const (
+	actionBack      = "back"
+	actionForceStop = "force-stop"
+	titleBack       = "Volver"
+	iconBack        = "[<]"
+)
+
 // ══════════════════════════════════════════════════════════════
 // Model Definition
 // ══════════════════════════════════════════════════════════════

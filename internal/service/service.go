@@ -45,7 +45,7 @@ func validateServiceVariantFields(variant Variant) error {
 
 // isValidServiceName validates that a service name contains only alphanumeric, underscores, and hyphens
 func isValidServiceName(name string) bool {
-	if name == "" {
+	if name == "" || len(name) > 256 {
 		return false
 	}
 
