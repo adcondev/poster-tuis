@@ -120,7 +120,7 @@ func secureScRun(action, regName string, extraArgs ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, scPath, args...) // #nosec G204
+	cmd := exec.CommandContext(ctx, scPath, args...) // #nosec G204,G702
 	return cmd.CombinedOutput()
 }
 
@@ -141,7 +141,7 @@ func secureTaskKillByService(regName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, taskkillPath, args...) // #nosec G204
+	cmd := exec.CommandContext(ctx, taskkillPath, args...) // #nosec G204,G702
 	return cmd.Run()
 }
 
@@ -192,7 +192,7 @@ func secureScFailure(regName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, scPath, args...) // #nosec G204
+	cmd := exec.CommandContext(ctx, scPath, args...) // #nosec G204,G702
 	return cmd.Run()
 }
 
@@ -226,7 +226,7 @@ func secureScCreate(regName, binPath, displayName string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, scPath, args...) // #nosec G204
+	cmd := exec.CommandContext(ctx, scPath, args...) // #nosec G204,G702
 	return cmd.CombinedOutput()
 }
 
@@ -284,7 +284,7 @@ func (m *Manager) Install() error {
 	output, err := secureScCreate(m.variant.RegistryName, absTargetPath, m.variant.DisplayName)
 	if err != nil {
 		outputStr := strings.TrimSpace(string(output))
-		_ = os.RemoveAll(absTargetDir) // clean up using validated absolute dir // #nosec G703
+		_ = os.RemoveAll(absTargetDir) // clean up using validated absolute dir // #nosec G304,G703
 		if strings.Contains(outputStr, "1073") {
 			return fmt.Errorf("el servicio ya existe en el registro de Windows (use Desinstalar primero)")
 		}
