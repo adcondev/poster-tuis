@@ -38,12 +38,12 @@ func TestStatus_String(t *testing.T) {
 		{
 			name:     "StatusUnknown",
 			status:   StatusUnknown,
-			expected: "[?] ESTADO DESCONOCIDO",
+			expected: statusUnknownString,
 		},
 		{
 			name:     "Undefined status (fallback to default)",
 			status:   Status(999),
-			expected: "[?] ESTADO DESCONOCIDO",
+			expected: statusUnknownString,
 		},
 	}
 

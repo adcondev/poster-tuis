@@ -10,6 +10,8 @@ import (
 // ══════════════════════════════════════════════════════════════
 
 const (
+	statusUnknownString = "[?] ESTADO DESCONOCIDO"
+
 	// Local is the identifier for the "Local" variant of a service family
 	Local = "Local"
 	// Remoto is the identifier for the "Remoto" variant of a service family
@@ -48,7 +50,7 @@ func (s Status) String() string {
 	case StatusNotInstalled:
 		return "[-] NO INSTALADO"
 	default:
-		return "[?] ESTADO DESCONOCIDO"
+		return statusUnknownString
 	}
 }
 
