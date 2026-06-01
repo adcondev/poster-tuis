@@ -12,6 +12,9 @@ import (
 )
 
 // ══════════════════════════════════════════════════════════════
+const actionBack = "back"
+const actionForceStop = "force-stop"
+
 // Main Update Function
 // ══════════════════════════════════════════════════════════════
 
@@ -211,7 +214,7 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 		switch selected.data {
-		case "back":
+		case actionBack:
 			return m.goToDashboard()
 
 		case "install-local":
@@ -236,7 +239,7 @@ func (m Model) handleFamilyKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			return m.executeAction("Detener Servicio", mgr.Stop)
 
-		case "force-stop":
+		case actionForceStop:
 			mgr := m.getActiveManager()
 			if mgr == nil {
 				m.statusMessage = "No se pudo determinar el servicio a detener."
@@ -313,7 +316,7 @@ func (m Model) handleLogsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.statusMessage = "Abriendo carpeta de logs..."
 			return m, nil
 
-		case "back":
+		case actionBack:
 			return m.returnToFamilyMenu()
 		}
 	}
