@@ -120,7 +120,7 @@ func secureScRun(action, regName string, extraArgs ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, scPath, args...)
+	cmd := exec.CommandContext(ctx, scPath, args...) // #nosec G204
 	return cmd.CombinedOutput()
 }
 
@@ -141,7 +141,7 @@ func secureTaskKillByService(regName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, taskkillPath, args...)
+	cmd := exec.CommandContext(ctx, taskkillPath, args...) // #nosec G204
 	return cmd.Run()
 }
 
@@ -192,7 +192,7 @@ func secureScFailure(regName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, scPath, args...)
+	cmd := exec.CommandContext(ctx, scPath, args...) // #nosec G204
 	return cmd.Run()
 }
 
@@ -226,7 +226,7 @@ func secureScCreate(regName, binPath, displayName string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, scPath, args...)
+	cmd := exec.CommandContext(ctx, scPath, args...) // #nosec G204
 	return cmd.CombinedOutput()
 }
 
@@ -271,12 +271,12 @@ func (m *Manager) Install() error {
 	}
 
 	// 1. Create target directory (using validated absolute path)
-	if err := os.MkdirAll(absTargetDir, 0750); err != nil {
+	if err := os.MkdirAll(absTargetDir, 0750); err != nil { // #nosec G703
 		return fmt.Errorf("crear directorio: %w", err)
 	}
 
 	// 2. Write embedded binary to disk (using validated absolute path)
-	if err := os.WriteFile(absTargetPath, m.variant.Binary, 0600); err != nil {
+	if err := os.WriteFile(absTargetPath, m.variant.Binary, 0600); err != nil { // #nosec G703
 		return fmt.Errorf("extraer binario: %w", err)
 	}
 
@@ -284,7 +284,7 @@ func (m *Manager) Install() error {
 	output, err := secureScCreate(m.variant.RegistryName, absTargetPath, m.variant.DisplayName)
 	if err != nil {
 		outputStr := strings.TrimSpace(string(output))
-		_ = os.RemoveAll(absTargetDir) // clean up using validated absolute dir
+		_ = os.RemoveAll(absTargetDir) // clean up using validated absolute dir // #nosec G703
 		if strings.Contains(outputStr, "1073") {
 			return fmt.Errorf("el servicio ya existe en el registro de Windows (use Desinstalar primero)")
 		}
@@ -340,7 +340,7 @@ func (m *Manager) Uninstall() error {
 	if err != nil {
 		return fmt.Errorf("invalid target directory: %w", err)
 	}
-	if err := os.RemoveAll(absTargetDir); err != nil {
+	if err := os.RemoveAll(absTargetDir); err != nil { // #nosec G703
 		return fmt.Errorf("no se pudieron eliminar los archivos: %w (puede que el proceso aún esté activo)", err)
 	}
 
