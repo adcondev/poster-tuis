@@ -1,6 +1,8 @@
 package service
 
 import (
+	"sort"
+
 	"github.com/adcondev/poster-tuis/internal/assets"
 	"github.com/adcondev/poster-tuis/internal/config"
 )
@@ -57,7 +59,13 @@ func GetServiceRegistry() map[string][]Variant {
 	}
 }
 
-// GetFamilyNames returns the ordered list of service family identifiers
+// GetFamilyNames returns a sorted list of available service families.
 func GetFamilyNames() []string {
-	return []string{"scale", "ticket"}
+	reg := GetServiceRegistry()
+	names := make([]string, 0, len(reg))
+	for name := range reg {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }

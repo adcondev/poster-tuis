@@ -9,6 +9,13 @@ import (
 	"github.com/adcondev/poster-tuis/internal/service"
 )
 
+const (
+	actionBack      = "back"
+	actionForceStop = "force-stop"
+	titleVolver     = "Volver"
+	iconBack        = "[<]"
+)
+
 // ══════════════════════════════════════════════════════════════
 // Menu Item Type
 // ══════════════════════════════════════════════════════════════
@@ -91,10 +98,10 @@ func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
 				data:        "install-remote",
 			},
 			menuItem{
-				title:       "Volver",
+				title:       titleVolver,
 				description: "Regresar al menú principal",
-				icon:        "[<]",
-				data:        "back",
+				icon:        iconBack,
+				data:        actionBack,
 			},
 		}
 	}
@@ -130,7 +137,7 @@ func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
 			title:       "Forzar Detención",
 			description: "El servicio está en transición — forzar detención",
 			icon:        "[!]",
-			data:        "force-stop",
+			data:        actionForceStop,
 		})
 
 	case service.StatusUnknown:
@@ -138,7 +145,7 @@ func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
 			title:       "Forzar Detención",
 			description: "Estado desconocido — intentar forzar detención del servicio",
 			icon:        "[!]",
-			data:        "force-stop",
+			data:        actionForceStop,
 		})
 	default:
 		log.Printf("Estado inesperado para %s: %s", installed, status.String())
@@ -159,10 +166,10 @@ func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
 			data:        "uninstall",
 		},
 		menuItem{
-			title:       "Volver",
+			title:       titleVolver,
 			description: "Regresar al menú principal",
-			icon:        "[<]",
-			data:        "back",
+			icon:        iconBack,
+			data:        actionBack,
 		},
 	)
 
@@ -189,10 +196,10 @@ func buildLogsMenuItems() []list.Item {
 			data:        "open-dir",
 		},
 		menuItem{
-			title:       "Volver",
+			title:       titleVolver,
 			description: "Regresar al menú de servicio",
-			icon:        "[<]",
-			data:        "back",
+			icon:        iconBack,
+			data:        actionBack,
 		},
 	}
 }
