@@ -1,6 +1,6 @@
 module github.com/adcondev/poster-tuis
 
-go 1.24
+go 1.25
 
 require (
 	github.com/charmbracelet/bubbles v0.21.1
