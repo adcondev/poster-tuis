@@ -198,8 +198,12 @@ func buildLogsMenuItems() []list.Item {
 }
 
 const (
+	// ActionBack represents the action to return to the previous menu.
 	ActionBack      = "back"
+	// ActionForceStop represents the action to force stop a service.
 	ActionForceStop = "force-stop"
+	// IconBack is the icon used for the back action.
 	IconBack        = "[<]"
+	// TextVolver is the display text for the back action.
 	TextVolver      = "Volver"
 )
