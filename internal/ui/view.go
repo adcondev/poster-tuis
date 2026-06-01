@@ -126,8 +126,7 @@ func (m Model) viewProcessing() string {
 
 	if m.progressPercent > 0 {
 		b.WriteString(m.progress.ViewAs(m.progressPercent))
-		//nolint:staticcheck // false positive: string builder is needed for the progress view
-		b.WriteString(fmt.Sprintf("\n%.0f%% completado", m.progressPercent*100))
+		fmt.Fprintf(&b, "\n%.0f%% completado", m.progressPercent*100)
 	}
 
 	pulseStyle := lipgloss.NewStyle().Foreground(secondaryColor)
