@@ -91,10 +91,10 @@ func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
 				data:        "install-remote",
 			},
 			menuItem{
-				title:       "Volver",
+				title:       TextVolver,
 				description: "Regresar al menú principal",
-				icon:        "[<]",
-				data:        "back",
+				icon:        IconBack,
+				data:        ActionBack,
 			},
 		}
 	}
@@ -130,7 +130,7 @@ func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
 			title:       "Forzar Detención",
 			description: "El servicio está en transición — forzar detención",
 			icon:        "[!]",
-			data:        "force-stop",
+			data:        ActionForceStop,
 		})
 
 	case service.StatusUnknown:
@@ -138,7 +138,7 @@ func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
 			title:       "Forzar Detención",
 			description: "Estado desconocido — intentar forzar detención del servicio",
 			icon:        "[!]",
-			data:        "force-stop",
+			data:        ActionForceStop,
 		})
 	default:
 		log.Printf("Estado inesperado para %s: %s", installed, status.String())
@@ -159,10 +159,10 @@ func buildFamilyMenuItems(fs service.FamilyStatus) []list.Item {
 			data:        "uninstall",
 		},
 		menuItem{
-			title:       "Volver",
+			title:       TextVolver,
 			description: "Regresar al menú principal",
-			icon:        "[<]",
-			data:        "back",
+			icon:        IconBack,
+			data:        ActionBack,
 		},
 	)
 
@@ -189,10 +189,21 @@ func buildLogsMenuItems() []list.Item {
 			data:        "open-dir",
 		},
 		menuItem{
-			title:       "Volver",
+			title:       TextVolver,
 			description: "Regresar al menú de servicio",
-			icon:        "[<]",
-			data:        "back",
+			icon:        IconBack,
+			data:        ActionBack,
 		},
 	}
 }
+
+const (
+	// ActionBack represents the action to return to the previous menu.
+	ActionBack      = "back"
+	// ActionForceStop represents the action to force stop a service.
+	ActionForceStop = "force-stop"
+	// IconBack is the icon used for the back action.
+	IconBack        = "[<]"
+	// TextVolver is the display text for the back action.
+	TextVolver      = "Volver"
+)
